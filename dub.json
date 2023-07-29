@@ -1,0 +1,11 @@
+{
+	"authors": [
+		"Alexandros F. G. Kapretsos"
+	],
+	"copyright": "Copyright © 2023, Alexandros F. G. Kapretsos",
+	"description": "A cool animation library for the D programming language.",
+	"license": "Apache-2.0",
+	"name": "deetween",
+	"targetType": "sourceLibrary",
+	"dflags": ["-preview=dip1000"]
+}
