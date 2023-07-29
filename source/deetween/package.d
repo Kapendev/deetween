@@ -1,20 +1,11 @@
 // Copyright 2023 Alexandros F. G. Kapretsos
 // SPDX-License-Identifier: Apache-2.0
 
-// TODO: Add more easing functions.
-// TODO: Add space keys even function thing.
-
 module deetween;
 
 import math = std.math;
 
 alias EasingFunc = float function(float x) pure nothrow @nogc @safe;
-
-enum TweenKind {
-    linear,
-    cubic,
-    nearest,
-}
 
 enum TweenMode {
     bomb,
@@ -29,16 +20,16 @@ pure nothrow @nogc @safe:
     float b;
     float time;
     float duration;
-    TweenKind kind;
+    EasingFunc f;
     TweenMode mode;
     bool isYoyoing;
 
-    this(float a, float b, float duration, TweenKind kind, TweenMode mode) {
+    this(float a, float b, float duration, EasingFunc f, TweenMode mode) {
         this.a = a;
         this.b = b;
         this.time = 0.0f;
         this.duration = duration;
-        this.kind = kind;
+        this.f = f;
         this.mode = mode;
     }
 
@@ -73,7 +64,7 @@ pure nothrow @nogc @safe:
         } else if (time >= duration) {
             return b;
         } else {
-            return ease(a, b, progress, toEasingFunc(kind));
+            return ease(a, b, progress, f);
         }
     }
 
@@ -111,6 +102,10 @@ pure nothrow @nogc @safe:
             return now;
         }
     }
+
+    void reset() {
+        time = 0.0f;
+    }
 }
 
 struct Keyframe {
@@ -133,15 +128,15 @@ pure nothrow @safe:
     Keyframe[] keys;
     float time;
     float duration;
-    TweenKind kind;
+    EasingFunc f;
     TweenMode mode;
     bool isYoyoing;
 
-    this(float duration, TweenKind kind, TweenMode mode) {
+    this(float duration, EasingFunc f, TweenMode mode) {
         reserve(keys, defaultCapacity);
         this.time = 0.0f;
         this.duration = duration;
-        this.kind = kind;
+        this.f = f;
         this.mode = mode;
     }
 
@@ -188,7 +183,7 @@ pure nothrow @safe:
                     Keyframe a = keys[i - 1];
                     Keyframe b = keys[i];
                     float weight = (time - a.time) / (b.time - a.time);
-                    return ease(a.value, b.value, weight, toEasingFunc(kind));
+                    return ease(a.value, b.value, weight, f);
                 }
             }
             return 0.0f;
@@ -231,9 +226,28 @@ pure nothrow @safe:
         }
     }
 
+    @nogc
+    void reset() {
+        time = 0.0f;
+    }
+
     // NOTE: Does not sort! Maybe change that?
     void append(Keyframe key) {
         keys ~= key;
+    }
+
+    void appendEvenly(float[] values...) {
+        foreach (i; 0 .. values.length) {
+            float t;
+            if (i == 0) {
+                t = 0.0f;
+            } else if (i == values.length - 1) {
+                t = duration;
+            } else {
+                t = duration * (float(i) / (values.length - 1));
+            }
+            append(Keyframe(values[i], t));
+        }
     }
 
     @nogc
@@ -247,17 +261,6 @@ pure nothrow @safe:
 }
 
 pure nothrow @nogc @safe {
-    EasingFunc toEasingFunc(TweenKind kind) {
-        final switch (kind) {
-        case TweenKind.linear:
-            return &easeLinear;
-        case TweenKind.cubic:
-            return &easeInOutCubic;
-        case TweenKind.nearest:
-            return &easeNearest;
-        }
-    }
-
     float lerp(float a, float b, float weight) {
         return a + (b - a) * weight;
     }
@@ -377,14 +380,117 @@ pure nothrow @nogc @safe {
             return (2.0f - math.pow(2.0f, -20.0f * x + 10.0f)) / 2.0f;
         }
     }
+
+    float easeInCirc(float x) {
+        return 1.0f - math.sqrt(1.0f - math.pow(x, 2.0f));
+    }
+
+    float easeOutCirc(float x) {
+        return math.sqrt(1.0f - math.pow(x - 1.0f, 2.0f));
+    }
+
+    float easeInOutCirc(float x) {
+        if (x < 0.5f) {
+            return (1.0f - math.sqrt(1.0f - math.pow(2.0f * x, 2.0f))) / 2.0f;
+        } else {
+            return (math.sqrt(1.0f - math.pow(-2.0f * x + 2.0f, 2.0f)) + 1.0f) / 2.0f;
+        }
+    }
+
+    float easeInBack(float x) {
+        enum c1 = 1.70158f;
+        enum c3 = c1 + 1.0f;
+        return c3 * x * x * x - c1 * x * x;
+    }
+
+    float easeOutBack(float x) {
+        enum c1 = 1.70158f;
+        enum c3 = c1 + 1.0f;
+        return 1.0f + c3 * math.pow(x - 1.0f, 3.0f) + c1 * math.pow(x - 1.0f, 2.0f);
+    }
+
+    float easeInOutBack(float x) {
+        enum c1 = 1.70158f;
+        enum c2 = c1 * 1.525f;
+        if (x < 0.5f) {
+            return (math.pow(2.0f * x, 2.0f) * ((c2 + 1.0f) * 2.0f * x - c2)) / 2.0f;
+        } else {
+            return (math.pow(2.0f * x - 2.0f, 2.0f) * ((c2 + 1.0f) * (x * 2.0f - 2.0f) + c2) + 2.0f) / 2.0f;
+        }
+    }
+
+    float easeInElastic(float x) {
+        enum c4 = (2.0f * math.PI) / 3.0f;
+        if (x == 0.0f) {
+            return 0.0f;
+        } else if (x == 1.0f) {
+            return 1.0f;
+        } else {
+            return -math.pow(2.0f, 10.0f * x - 10.0f) * math.sin((x * 10.0f - 10.75f) * c4);
+        }
+    }
+
+    float easeOutElastic(float x) {
+        enum c4 = (2.0f * math.PI) / 3.0f;
+        if (x == 0.0f) {
+            return 0.0f;
+        } else if (x == 1.0f) {
+            return 1.0f;
+        } else {
+            return math.pow(2.0f, -10.0f * x) * math.sin((x * 10.0f - 0.75f) * c4) + 1.0f;
+        }
+    }
+
+    float easeInOutElastic(float x) {
+        enum c5 = (2.0f * math.PI) / 4.5f;
+        if (x == 0.0f) {
+            return 0.0f;
+        } else if (x == 1.0f) {
+            return 1.0f;
+        } else if (x < 0.5f) {
+            return -(math.pow(2.0f, 20.0f * x - 10.0f) * math.sin((20.0f * x - 11.125f) * c5)) / 2.0f;
+        } else {
+            return (math.pow(2.0f, -20.0f * x + 10.0f) * math.sin((20.0f * x - 11.125f) * c5)) / 2.0f + 1.0f;
+        }
+    }
+
+    float easeInBounce(float x) {
+        return 1.0f - easeOutBounce(1.0f - x);
+    }
+
+    float easeOutBounce(float x) {
+        enum n1 = 7.5625f;
+        enum d1 = 2.75f;
+        if (x < 1.0f / d1) {
+            return n1 * x * x;
+        } else if (x < 2.0f / d1) {
+            return n1 * (x -= 1.5f / d1) * x + 0.75f;
+        } else if (x < 2.5f / d1) {
+            float xm = x - 2.25f / d1;
+            return n1 * xm * xm + 0.9375f;
+        } else {
+            float xm = x - 2.625f / d1;
+            return n1 * xm * xm + 0.984375f;
+        }
+    }
+
+    float easeInOutBounce(float x) {
+        if (x < 0.5f) {
+            return (1.0f - easeOutBounce(1.0f - 2.0f * x)) / 2.0f;
+        } else {
+            return (1.0f + easeOutBounce(2.0f * x - 1.0f)) / 2.0f;
+        }
+    }
 }
 
 unittest {
-    enum dt = 0.01;
     enum a = 69;
     enum b = 420;
+    enum dt = 0.01;
+    enum duration = 1.0;
 
-    auto tween = Tween(a, b, 1.0, TweenKind.linear, TweenMode.bomb);
+    auto tween = Tween(a, b, duration, &easeLinear, TweenMode.bomb);
+
     assert(tween.now == a);
     while (!tween.hasFinished) {
         float value = tween.update(dt);
@@ -394,17 +500,32 @@ unittest {
 }
 
 unittest {
-    enum dt = 0.01;
     enum a = 69;
     enum b = 420;
+    enum dt = 0.01;
+    enum duration = 1.0;
 
-    auto group = KeyframeGroup(1.0, TweenKind.linear, TweenMode.bomb);
+    auto group = KeyframeGroup(duration, &easeLinear, TweenMode.bomb);
     group.append(Keyframe(a, 0.0));
-    group.append(Keyframe(b, 1.0));
+    group.append(Keyframe(b, duration));
+
     assert(group.now == a);
     while (!group.hasFinished) {
         float value = group.update(dt);
         assert(value >= a && value <= b);
     }
     assert(group.now == b);
+}
+
+unittest {
+    enum duration = 0.3;
+
+    auto walkAnim = KeyframeGroup(duration, &easeNearest, TweenMode.loop);
+    walkAnim.appendEvenly(0, 1, 2, 2);
+
+    float dt = duration / (walkAnim.keys.length - 1) + 0.001;
+    assert(walkAnim.now == walkAnim.keys[0].value);
+    foreach (i; 1 .. walkAnim.keys.length - 1) {
+        assert(walkAnim.update(dt) == walkAnim.keys[i].value);
+    }
 }
