@@ -16,18 +16,17 @@ enum TweenMode {
 struct Tween {
 pure nothrow @nogc @safe:
 
-    float a;
-    float b;
-    float time;
-    float duration;
-    EasingFunc f;
+    float a = 0.0f;
+    float b = 0.0f;
+    float time = 0.0f;
+    float duration = 0.0f;
+    EasingFunc f = &easeLinear;
     TweenMode mode;
     bool isYoyoing;
 
     this(float a, float b, float duration, EasingFunc f, TweenMode mode) {
         this.a = a;
         this.b = b;
-        this.time = 0.0f;
         this.duration = duration;
         this.f = f;
         this.mode = mode;
@@ -111,8 +110,8 @@ pure nothrow @nogc @safe:
 struct Keyframe {
 pure nothrow @nogc @safe:
 
-    float value;
-    float time;
+    float value = 0.0f;
+    float time = 0.0f;
 
     this(float value, float time) {
         this.value = value;
@@ -126,15 +125,14 @@ pure nothrow @safe:
     enum defaultCapacity = 16;
 
     Keyframe[] keys;
-    float time;
-    float duration;
-    EasingFunc f;
+    float time = 0.0f;
+    float duration = 0.0f;
+    EasingFunc f = &easeLinear;
     TweenMode mode;
     bool isYoyoing;
 
     this(float duration, EasingFunc f, TweenMode mode) {
         reserve(keys, defaultCapacity);
-        this.time = 0.0f;
         this.duration = duration;
         this.f = f;
         this.mode = mode;
@@ -255,8 +253,20 @@ pure nothrow @safe:
         int i = 0;
         while (i + 1 < keys.length) {
             keys[i] = keys[i + 1];
+            i += 1;
         }
         keys = keys[0 .. $ - 1];
+    }
+
+    @nogc
+    Keyframe pop() {
+        if (keys.length != 0) {
+            Keyframe temp = keys[$ - 1];
+            keys = keys[0 .. $ - 1];
+            return temp;
+        } else {
+            return Keyframe();
+        }
     }
 }
 
@@ -528,4 +538,24 @@ unittest {
     foreach (i; 1 .. walkAnim.keys.length - 1) {
         assert(walkAnim.update(dt) == walkAnim.keys[i].value);
     }
+}
+
+unittest {
+    enum key = Keyframe(1, 1);
+
+    auto group = KeyframeGroup();
+
+    group.append(key);
+    group.append(key);
+    assert(group.keys.length == 2);
+    assert(group.pop() == key);
+    assert(group.pop() == key);
+    assert(group.pop() != key);
+    assert(group.keys.length == 0);
+
+    group.appendEvenly(1, 2, 3, 4);
+    assert(group.keys.length == 4);
+    group.remove(1);
+    assert(group.keys.length == 3);
+    assert(group.keys[1].value == 3);
 }

@@ -1,7 +1,7 @@
 # 📽 Deetween
 
 A cool animation library for the D programming language.
-Deetween is a single-file library designed to provide a simple foundation for creating more complex animation systems.
+Deetween is a single-file library designed to provide a simple foundation for creating complex animation systems.
 
 ## Types
 
@@ -87,6 +87,10 @@ void main() {
 * [Godot](https://docs.godotengine.org/en/stable/classes/class_animationplayer.html)
 * [Gween](https://github.com/tanema/gween)
 * [Keyframe](https://github.com/HannesMann/keyframe)
+
+## Credits
+
+The easing functions were ported from JavaScript to D from [this](https://easings.net/) site.
 
 ## License
 
