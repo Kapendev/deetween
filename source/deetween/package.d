@@ -229,9 +229,22 @@ pure nothrow @safe:
         time = 0.0f;
     }
 
-    // NOTE: Does not sort! Maybe change that?
     void append(Keyframe key) {
-        keys ~= key;
+        if (keys.length == 0 || keys[$ - 1].time <= key.time) {
+            keys ~= key;
+        } else {
+            keys ~= key;
+            // Hehehe!
+            foreach (i; 1 .. keys.length) {
+                foreach_reverse (j; i .. keys.length) {
+                    if (keys[j - 1].time > keys[j].time) {
+                        Keyframe temp = keys[j - 1];
+                        keys[j - 1] = keys[j];
+                        keys[j] = temp;
+                    }
+                }
+            }
+        }
     }
 
     void appendEvenly(float[] values...) {
@@ -491,6 +504,14 @@ pure nothrow @nogc @safe {
             return (1.0f + easeOutBounce(2.0f * x - 1.0f)) / 2.0f;
         }
     }
+
+    float moveTowards(float a, float b, float dt) {
+        float c = a + dt;
+        if (c >= b) {
+            return b;
+        }
+        return c;
+    }
 }
 
 unittest {
@@ -541,16 +562,20 @@ unittest {
 }
 
 unittest {
-    enum key = Keyframe(1, 1);
+    enum key1 = Keyframe(1, 1);
+    enum key2 = Keyframe(2, 2);
+    enum key3 = Keyframe(3, 3);
 
     auto group = KeyframeGroup();
 
-    group.append(key);
-    group.append(key);
-    assert(group.keys.length == 2);
-    assert(group.pop() == key);
-    assert(group.pop() == key);
-    assert(group.pop() != key);
+    group.append(key3);
+    group.append(key2);
+    group.append(key1);
+    assert(group.keys.length == 3);
+    assert(group.pop() == key3);
+    assert(group.pop() == key2);
+    assert(group.pop() == key1);
+    assert(group.pop() == Keyframe());
     assert(group.keys.length == 0);
 
     group.appendEvenly(1, 2, 3, 4);
