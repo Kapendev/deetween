@@ -38,9 +38,9 @@ void main() {
 }
 ```
 
-A simple a-to-b animation where each value lasts 0.1 seconds.
-
 ### FrameTween
+
+A simple a-to-b animation where each value lasts 0.1 seconds.
 
 ```d
 import deetween;
