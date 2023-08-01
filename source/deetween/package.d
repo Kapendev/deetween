@@ -1,6 +1,9 @@
 // Copyright 2023 Alexandros F. G. Kapretsos
 // SPDX-License-Identifier: Apache-2.0
 
+// TODO: Impl update for FrameTracker.
+// TODO: Write test for FrameTracker.
+
 module deetween;
 
 import math = std.math;
@@ -104,6 +107,64 @@ pure nothrow @nogc @safe:
 
     void reset() {
         time = 0.0f;
+    }
+}
+
+struct FrameTracker {
+pure nothrow @nogc @safe:
+
+    int a;
+    int b;
+    int frame;
+    float frameTime = 0.0f;
+    float frameDuration = 0.0f;
+    TweenMode mode;
+    bool isYoyoing;
+
+    this(int a, int b, float frameDuration) {
+        this.a = a;
+        this.b = b;
+        this.frame = a;
+        this.frameDuration = frameDuration;
+    }
+
+    bool hasStarted() {
+        return frame > a;
+    }
+
+    bool hasFinished() {
+        return frame >= b;
+    }
+
+    float progress() {
+        if ((b - a) != 0) {
+            return cast(float)((frame - a)) / (b - a);
+        }
+        return 0.0f;
+    }
+
+    void progress(float value) {
+        if (value <= 0.0f) {
+            frame = a;
+        } else if (value >= 1.0f) {
+            frame = b;
+        } else {
+            frame = cast(int)(value * (b - a) + a);
+        }
+    }
+
+    int now() {
+        return frame;
+    }
+
+    // TODO: Think about frameTime.
+    int update(float dt) {
+        return now;
+    }
+
+    void reset() {
+        frame = a;
+        frameTime = 0.0f;
     }
 }
 
@@ -255,7 +316,7 @@ pure nothrow @safe:
             } else if (i == values.length - 1) {
                 t = duration;
             } else {
-                t = duration * (float(i) / (values.length - 1));
+                t = duration * (cast(float)(i) / (values.length - 1));
             }
             append(Keyframe(values[i], t));
         }
@@ -507,7 +568,9 @@ pure nothrow @nogc @safe {
 
     float moveTowards(float a, float b, float dt) {
         float c = a + dt;
-        if (c >= b) {
+        if (c <= 0.0f) {
+            return a;
+        } else if (c >= b) {
             return b;
         }
         return c;

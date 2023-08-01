@@ -8,6 +8,7 @@ Deetween is a single-file library designed to provide a simple foundation for cr
 * EasingFunc
 * TweenMode
 * Tween
+* FrameTracker (WIP)
 * Keyframe
 * KeyframeGroup
 
