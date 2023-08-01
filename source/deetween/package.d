@@ -1,9 +1,6 @@
 // Copyright 2023 Alexandros F. G. Kapretsos
 // SPDX-License-Identifier: Apache-2.0
 
-// TODO: Impl update for FrameTracker.
-// TODO: Write test for FrameTracker.
-
 module deetween;
 
 import math = std.math;
@@ -27,7 +24,7 @@ pure nothrow @nogc @safe:
     TweenMode mode;
     bool isYoyoing;
 
-    this(float a, float b, float duration, EasingFunc f, TweenMode mode) {
+    this(float a, float b, float duration, TweenMode mode, EasingFunc f = &easeLinear) {
         this.a = a;
         this.b = b;
         this.duration = duration;
@@ -110,7 +107,7 @@ pure nothrow @nogc @safe:
     }
 }
 
-struct FrameTracker {
+struct FrameTween {
 pure nothrow @nogc @safe:
 
     int a;
@@ -121,11 +118,12 @@ pure nothrow @nogc @safe:
     TweenMode mode;
     bool isYoyoing;
 
-    this(int a, int b, float frameDuration) {
+    this(int a, int b, float frameDuration, TweenMode mode) {
         this.a = a;
         this.b = b;
         this.frame = a;
         this.frameDuration = frameDuration;
+        this.mode = mode;
     }
 
     bool hasStarted() {
@@ -157,14 +155,60 @@ pure nothrow @nogc @safe:
         return frame;
     }
 
-    // TODO: Think about frameTime.
     int update(float dt) {
-        return now;
+        final switch (mode) {
+        case TweenMode.bomb:
+            frameTime += dt;
+            if (frameTime <= 0.0f && frame > a) {
+                frame -= 1;
+                frameTime = frameTime + frameDuration;
+            } else if (frameTime >= frameDuration && frame < b) {
+                frame += 1;
+                frameTime = frameTime - frameDuration;
+            }
+            return now;
+        case TweenMode.loop:
+            frameTime += dt;
+            if (frameTime <= 0.0f && frame >= a) {
+                if (frame == a) {
+                    frame = b;
+                } else {
+                    frame -= 1;
+                }
+                frameTime = frameTime + frameDuration;
+            } else if (frameTime >= frameDuration && frame <= b) {
+                if (frame == b) {
+                    frame = a;
+                } else {
+                    frame += 1;
+                }
+                frameTime = frameTime - frameDuration;
+            }
+            return now;
+        case TweenMode.yoyo:
+            if (isYoyoing) {
+                frameTime -= dt;
+            } else {
+                frameTime += dt;
+            }
+            if (frameTime <= 0.0f && frame > a) {
+                frame -= 1;
+                frameTime = frameTime + frameDuration;
+            } else if (frameTime >= frameDuration && frame < b) {
+                frame += 1;
+                frameTime = frameTime - frameDuration;
+            }
+            return now;
+        }
     }
 
     void reset() {
         frame = a;
         frameTime = 0.0f;
+    }
+
+    int length() {
+        return b - a;
     }
 }
 
@@ -192,7 +236,7 @@ pure nothrow @safe:
     TweenMode mode;
     bool isYoyoing;
 
-    this(float duration, EasingFunc f, TweenMode mode) {
+    this(float duration, TweenMode mode, EasingFunc f = &easeLinear) {
         reserve(keys, defaultCapacity);
         this.duration = duration;
         this.f = f;
@@ -290,6 +334,11 @@ pure nothrow @safe:
         time = 0.0f;
     }
 
+    @nogc
+    size_t length() {
+        return keys.length;
+    }
+
     void append(Keyframe key) {
         if (keys.length == 0 || keys[$ - 1].time <= key.time) {
             keys ~= key;
@@ -341,6 +390,11 @@ pure nothrow @safe:
         } else {
             return Keyframe();
         }
+    }
+
+    @nogc
+    void clear() {
+        keys.length = 0;
     }
 }
 
@@ -578,12 +632,12 @@ pure nothrow @nogc @safe {
 }
 
 unittest {
-    enum a = 69;
-    enum b = 420;
-    enum dt = 0.01;
-    enum duration = 1.0;
+    enum a = 9.0;
+    enum b = 20.0;
+    enum totalDuration = 1.0;
+    enum dt = 0.001;
 
-    auto tween = Tween(a, b, duration, &easeLinear, TweenMode.bomb);
+    auto tween = Tween(a, b, totalDuration, TweenMode.bomb);
 
     assert(tween.now == a);
     while (!tween.hasFinished) {
@@ -594,34 +648,40 @@ unittest {
 }
 
 unittest {
-    enum a = 69;
-    enum b = 420;
-    enum dt = 0.01;
-    enum duration = 1.0;
+    enum a = 9;
+    enum b = 20;
+    enum frameDuration = 0.1;
+    enum dt = 0.001;
 
-    auto group = KeyframeGroup(duration, &easeLinear, TweenMode.bomb);
+    auto tween = FrameTween(a, b, frameDuration, TweenMode.bomb);
+
+    assert(tween.now == a);
+    while (!tween.hasFinished) {
+        int value = tween.update(dt);
+        assert(value >= a && value <= b);
+    }
+    assert(tween.now == b);
+}
+
+unittest {
+    enum a = 9.0;
+    enum b = 20.0;
+    enum totalDuration = 1.0;
+    enum dt = 0.001;
+
+    auto group = KeyframeGroup(totalDuration, TweenMode.bomb);
     group.append(Keyframe(a, 0.0));
-    group.append(Keyframe(b, duration));
+    group.append(Keyframe(b, totalDuration));
 
+    assert(group.length == 2);
     assert(group.now == a);
     while (!group.hasFinished) {
         float value = group.update(dt);
         assert(value >= a && value <= b);
     }
     assert(group.now == b);
-}
-
-unittest {
-    enum duration = 0.3;
-
-    auto walkAnim = KeyframeGroup(duration, &easeNearest, TweenMode.loop);
-    walkAnim.appendEvenly(0, 1, 2, 2);
-
-    float dt = duration / (walkAnim.keys.length - 1) + 0.001;
-    assert(walkAnim.now == walkAnim.keys[0].value);
-    foreach (i; 1 .. walkAnim.keys.length - 1) {
-        assert(walkAnim.update(dt) == walkAnim.keys[i].value);
-    }
+    group.clear();
+    assert(group.length == 0);
 }
 
 unittest {

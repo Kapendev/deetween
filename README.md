@@ -8,7 +8,7 @@ Deetween is a single-file library designed to provide a simple foundation for cr
 * EasingFunc
 * TweenMode
 * Tween
-* FrameTracker (WIP)
+* FrameTween
 * Keyframe
 * KeyframeGroup
 
@@ -16,18 +16,18 @@ Deetween is a single-file library designed to provide a simple foundation for cr
 
 ### Tween
 
-A simple from-a-to-b animation lasting 1.0 seconds.
+A simple a-to-b animation that lasts 1.0 seconds.
 
 ```d
 import deetween;
 
 void main() {
-    enum a = 69;
-    enum b = 420;
-    enum dt = 0.01;
-    enum duration = 1.0;
+    enum a = 9.0;
+    enum b = 20.0;
+    enum totalDuration = 1.0;
+    enum dt = 0.001;
 
-    auto tween = Tween(a, b, duration, &easeLinear, TweenMode.bomb);
+    auto tween = Tween(a, b, totalDuration, TweenMode.bomb);
 
     assert(tween.now == a);
     while (!tween.hasFinished) {
@@ -38,48 +38,56 @@ void main() {
 }
 ```
 
-### KeyframeGroup
+A simple a-to-b animation where each value lasts 0.1 seconds.
 
-A simple from-a-to-b animation lasting 1.0 seconds.
+### FrameTween
 
 ```d
 import deetween;
 
 void main() {
-    enum a = 69;
-    enum b = 420;
-    enum dt = 0.01;
-    enum duration = 1.0;
+    enum a = 9;
+    enum b = 20;
+    enum frameDuration = 0.1;
+    enum dt = 0.001;
 
-    auto group = KeyframeGroup(duration, &easeLinear, TweenMode.bomb);
+    auto tween = FrameTween(a, b, frameDuration, TweenMode.bomb);
+
+    assert(tween.now == a);
+    while (!tween.hasFinished) {
+        int value = tween.update(dt);
+        assert(value >= a && value <= b);
+    }
+    assert(tween.now == b);
+}
+```
+
+### KeyframeGroup
+
+A simple a-to-b animation lasting 1.0 seconds.
+
+```d
+import deetween;
+
+void main() {
+    enum a = 9.0;
+    enum b = 20.0;
+    enum totalDuration = 1.0;
+    enum dt = 0.001;
+
+    auto group = KeyframeGroup(totalDuration, TweenMode.bomb);
     group.append(Keyframe(a, 0.0));
-    group.append(Keyframe(b, duration));
+    group.append(Keyframe(b, totalDuration));
 
+    assert(group.length == 2);
     assert(group.now == a);
     while (!group.hasFinished) {
         float value = group.update(dt);
         assert(value >= a && value <= b);
     }
     assert(group.now == b);
-}
-```
-
-A walking animation with 3 frames lasting 0.3 seconds.
-
-```d
-import deetween;
-
-void main() {
-    enum duration = 0.3;
-
-    auto walkAnim = KeyframeGroup(duration, &easeNearest, TweenMode.loop);
-    walkAnim.appendEvenly(0, 1, 2, 2);
-
-    float dt = duration / (walkAnim.keys.length - 1) + 0.001;
-    assert(walkAnim.now == walkAnim.keys[0].value);
-    foreach (i; 1 .. walkAnim.keys.length - 1) {
-        assert(walkAnim.update(dt) == walkAnim.keys[i].value);
-    }
+    group.clear();
+    assert(group.length == 0);
 }
 ```
 
