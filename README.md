@@ -1,7 +1,7 @@
 # 📽 Deetween
 
 A cool animation library for the D programming language.
-Deetween is a single-file library designed to provide a simple foundation for creating complex animation systems.
+Deetween is a single-file library designed to be a simple foundation for creating complex animation systems.
 
 ## Types
 

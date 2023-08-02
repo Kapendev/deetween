@@ -1,9 +1,6 @@
 // Copyright 2023 Alexandros F. G. Kapretsos
 // SPDX-License-Identifier: Apache-2.0
 
-// TODO: Make elapsedTime() work for FrameTween.
-// TODO: Fix update() for FrameTween.
-
 module deetween;
 
 import math = std.math;
@@ -82,9 +79,10 @@ pure nothrow @nogc @safe:
             return now;
         case TweenMode.loop:
             time += dt;
-            if (time <= 0.0f) {
+            while (time <= 0.0f) {
                 time += duration;
-            } else if (time >= duration) {
+            }
+            while (time >= duration) {
                 time -= duration;
             }
             return now;
@@ -178,24 +176,26 @@ pure nothrow @nogc @safe:
         final switch (mode) {
         case TweenMode.bomb:
             frameTime += dt;
-            if (frameTime <= 0.0f && frame > a) {
+            while (frameTime <= 0.0f && frame > a) {
                 frame -= 1;
                 frameTime = frameTime + frameDuration;
-            } else if (frameTime >= frameDuration && frame < b) {
+            }
+            while (frameTime >= frameDuration && frame < b) {
                 frame += 1;
                 frameTime = frameTime - frameDuration;
             }
             return now;
         case TweenMode.loop:
             frameTime += dt;
-            if (frameTime <= 0.0f && frame >= a) {
+            while (frameTime <= 0.0f && frame >= a) {
                 if (frame == a) {
                     frame = b;
                 } else {
                     frame -= 1;
                 }
                 frameTime = frameTime + frameDuration;
-            } else if (frameTime >= frameDuration && frame <= b) {
+            }
+            while (frameTime >= frameDuration && frame <= b) {
                 if (frame == b) {
                     frame = a;
                 } else {
@@ -210,10 +210,11 @@ pure nothrow @nogc @safe:
             } else {
                 frameTime += dt;
             }
-            if (frameTime <= 0.0f && frame > a) {
+            while (frameTime <= 0.0f && frame > a) {
                 frame -= 1;
                 frameTime = frameTime + frameDuration;
-            } else if (frameTime >= frameDuration && frame < b) {
+            }
+            while (frameTime >= frameDuration && frame < b) {
                 frame += 1;
                 frameTime = frameTime - frameDuration;
             }
@@ -331,9 +332,10 @@ pure nothrow @safe:
             return now;
         case TweenMode.loop:
             time += dt;
-            if (time <= 0.0f) {
+            while (time <= 0.0f) {
                 time += duration;
-            } else if (time >= duration) {
+            }
+            while (time >= duration) {
                 time -= duration;
             }
             return now;
@@ -716,9 +718,24 @@ unittest {
 }
 
 unittest {
-    enum totalDuration = 1.0;
     enum a = 69;
     enum b = 420;
+    enum totalDuration = 1.0;
+
+    auto anim1 = Tween(a, b, totalDuration, TweenMode.loop);
+    auto anim2 = FrameTween(a, b, totalDuration / (b - a), TweenMode.loop);
+    auto anim3 = KeyframeGroup(totalDuration, TweenMode.loop);
+    anim3.appendEvenly(a, b);
+
+    assert(anim1.update(totalDuration + 0.1) < b);
+    assert(anim2.update(totalDuration + 0.1) < b);
+    assert(anim3.update(totalDuration + 0.1) < b);
+}
+
+unittest {
+    enum a = 69;
+    enum b = 420;
+    enum totalDuration = 1.0;
 
     auto anim1 = Tween(a, b, totalDuration, TweenMode.bomb);
     auto anim2 = FrameTween(a, b, totalDuration / (b - a), TweenMode.bomb);
@@ -729,10 +746,8 @@ unittest {
     assert(anim2.elapsedTime(0.0) == a);
     assert(anim3.elapsedTime(0.0) == a);
 
-    import std.stdio;
-
     assert(anim1.elapsedTime(totalDuration) == b);
-    writeln("TODO: Make elapsedTime() work for FrameTween.");
+    assert(anim2.elapsedTime(totalDuration) == b);
     assert(anim3.elapsedTime(totalDuration) == b);
 }
 
