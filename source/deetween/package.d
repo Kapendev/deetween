@@ -1,6 +1,9 @@
 // Copyright 2023 Alexandros F. G. Kapretsos
 // SPDX-License-Identifier: Apache-2.0
 
+// TODO: Make elapsedTime() work for FrameTween.
+// TODO: Fix update() for FrameTween.
+
 module deetween;
 
 import math = std.math;
@@ -102,6 +105,11 @@ pure nothrow @nogc @safe:
         }
     }
 
+    float elapsedTime(float time) {
+        this.time = 0.0f;
+        return update(time);
+    }
+
     void reset() {
         time = 0.0f;
     }
@@ -124,6 +132,17 @@ pure nothrow @nogc @safe:
         this.frame = a;
         this.frameDuration = frameDuration;
         this.mode = mode;
+    }
+
+    float duration() {
+        return (b - a) * frameDuration;
+    }
+
+    void duration(float value) {
+        if ((b - a) != 0) {
+            frameDuration = value / (b - a);
+        }
+        frameDuration = 0.0f;
     }
 
     bool hasStarted() {
@@ -200,6 +219,12 @@ pure nothrow @nogc @safe:
             }
             return now;
         }
+    }
+
+    int elapsedTime(float time) {
+        frame = a;
+        frameTime = 0.0f;
+        return update(time);
     }
 
     void reset() {
@@ -327,6 +352,12 @@ pure nothrow @safe:
             }
             return now;
         }
+    }
+
+    @nogc
+    float elapsedTime(float time) {
+        this.time = 0.0f;
+        return update(time);
     }
 
     @nogc
@@ -682,6 +713,27 @@ unittest {
     assert(group.now == b);
     group.clear();
     assert(group.length == 0);
+}
+
+unittest {
+    enum totalDuration = 1.0;
+    enum a = 69;
+    enum b = 420;
+
+    auto anim1 = Tween(a, b, totalDuration, TweenMode.bomb);
+    auto anim2 = FrameTween(a, b, totalDuration / (b - a), TweenMode.bomb);
+    auto anim3 = KeyframeGroup(totalDuration, TweenMode.bomb);
+    anim3.appendEvenly(a, b);
+
+    assert(anim1.elapsedTime(0.0) == a);
+    assert(anim2.elapsedTime(0.0) == a);
+    assert(anim3.elapsedTime(0.0) == a);
+
+    import std.stdio;
+
+    assert(anim1.elapsedTime(totalDuration) == b);
+    writeln("TODO: Make elapsedTime() work for FrameTween.");
+    assert(anim3.elapsedTime(totalDuration) == b);
 }
 
 unittest {
