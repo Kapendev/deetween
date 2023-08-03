@@ -3,7 +3,10 @@
 
 module deetween;
 
-import math = std.math;
+import math = core.math;
+import expo = std.math.exponential;
+
+private enum PI = 3.141592f;
 
 /// A representation of an easing function.
 alias EasingFunc = float function(float x) pure nothrow @nogc @safe;
@@ -15,7 +18,7 @@ enum TweenMode {
     yoyo, /// It reverses the given delta when it reaches the beginning or end of the animation.
 }
 
-/// A tween handles the transition from one value to another value.
+/// A tween handles the transition from one value to another value based on a transition duration.
 struct Tween {
 pure nothrow @nogc @safe:
 
@@ -118,7 +121,7 @@ pure nothrow @nogc @safe:
     }
 }
 
-/// A frame tween handles the transition from one value to another value based on a given value duration.
+/// A frame tween handles the transition from one value to another value based on a value duration.
 struct FrameTween {
 pure nothrow @nogc @safe:
 
@@ -468,15 +471,15 @@ pure nothrow @nogc @safe {
     }
 
     float easeInSine(float x) {
-        return 1.0f - math.cos((x * math.PI) / 2.0f);
+        return 1.0f - math.cos((x * PI) / 2.0f);
     }
 
     float easeOutSine(float x) {
-        return math.sin((x * math.PI) / 2.0f);
+        return math.sin((x * PI) / 2.0f);
     }
 
     float easeInOutSine(float x) {
-        return -(math.cos(math.PI * x) - 1.0f) / 2.0f;
+        return -(math.cos(PI * x) - 1.0f) / 2.0f;
     }
 
     float easeInQuad(float x) {
@@ -491,7 +494,7 @@ pure nothrow @nogc @safe {
         if (x < 0.5f) {
             return 2.0f * x * x;
         } else {
-            return 1.0f - math.pow(-2.0f * x + 2.0f, 2.0f) / 2.0f;
+            return 1.0f - expo.pow(-2.0f * x + 2.0f, 2.0f) / 2.0f;
         }
     }
 
@@ -500,14 +503,14 @@ pure nothrow @nogc @safe {
     }
 
     float easeOutCubic(float x) {
-        return 1.0f - math.pow(1.0f - x, 3.0f);
+        return 1.0f - expo.pow(1.0f - x, 3.0f);
     }
 
     float easeInOutCubic(float x) {
         if (x < 0.5f) {
             return 4.0f * x * x * x;
         } else {
-            return 1.0f - math.pow(-2.0f * x + 2.0f, 3.0f) / 2.0f;
+            return 1.0f - expo.pow(-2.0f * x + 2.0f, 3.0f) / 2.0f;
         }
     }
 
@@ -516,14 +519,14 @@ pure nothrow @nogc @safe {
     }
 
     float easeOutQuart(float x) {
-        return 1.0f - math.pow(1.0f - x, 4.0f);
+        return 1.0f - expo.pow(1.0f - x, 4.0f);
     }
 
     float easeInOutQuart(float x) {
         if (x < 0.5f) {
             return 8.0f * x * x * x * x;
         } else {
-            return 1.0f - math.pow(-2.0f * x + 2.0f, 4.0f) / 2.0f;
+            return 1.0f - expo.pow(-2.0f * x + 2.0f, 4.0f) / 2.0f;
         }
     }
 
@@ -532,14 +535,14 @@ pure nothrow @nogc @safe {
     }
 
     float easeOutQuint(float x) {
-        return 1.0f - math.pow(1.0f - x, 5.0f);
+        return 1.0f - expo.pow(1.0f - x, 5.0f);
     }
 
     float easeInOutQuint(float x) {
         if (x < 0.5f) {
             return 16.0f * x * x * x * x * x;
         } else {
-            return 1.0f - math.pow(-2.0f * x + 2.0f, 5.0f) / 2.0f;
+            return 1.0f - expo.pow(-2.0f * x + 2.0f, 5.0f) / 2.0f;
         }
     }
 
@@ -547,7 +550,7 @@ pure nothrow @nogc @safe {
         if (x == 0.0f) {
             return 0.0f;
         } else {
-            return math.pow(2.0f, 10.0f * x - 10.0f);
+            return expo.pow(2.0f, 10.0f * x - 10.0f);
         }
     }
 
@@ -555,7 +558,7 @@ pure nothrow @nogc @safe {
         if (x == 1.0f) {
             return 1.0f;
         } else {
-            return 1.0f - math.pow(2.0f, -10.0f * x);
+            return 1.0f - expo.pow(2.0f, -10.0f * x);
         }
     }
 
@@ -565,25 +568,25 @@ pure nothrow @nogc @safe {
         } else if (x == 1.0f) {
             return 1.0f;
         } else if (x < 0.5f) {
-            return math.pow(2.0f, 20.0f * x - 10.0f) / 2.0f;
+            return expo.pow(2.0f, 20.0f * x - 10.0f) / 2.0f;
         } else {
-            return (2.0f - math.pow(2.0f, -20.0f * x + 10.0f)) / 2.0f;
+            return (2.0f - expo.pow(2.0f, -20.0f * x + 10.0f)) / 2.0f;
         }
     }
 
     float easeInCirc(float x) {
-        return 1.0f - math.sqrt(1.0f - math.pow(x, 2.0f));
+        return 1.0f - math.sqrt(1.0f - expo.pow(x, 2.0f));
     }
 
     float easeOutCirc(float x) {
-        return math.sqrt(1.0f - math.pow(x - 1.0f, 2.0f));
+        return math.sqrt(1.0f - expo.pow(x - 1.0f, 2.0f));
     }
 
     float easeInOutCirc(float x) {
         if (x < 0.5f) {
-            return (1.0f - math.sqrt(1.0f - math.pow(2.0f * x, 2.0f))) / 2.0f;
+            return (1.0f - math.sqrt(1.0f - expo.pow(2.0f * x, 2.0f))) / 2.0f;
         } else {
-            return (math.sqrt(1.0f - math.pow(-2.0f * x + 2.0f, 2.0f)) + 1.0f) / 2.0f;
+            return (math.sqrt(1.0f - expo.pow(-2.0f * x + 2.0f, 2.0f)) + 1.0f) / 2.0f;
         }
     }
 
@@ -596,51 +599,51 @@ pure nothrow @nogc @safe {
     float easeOutBack(float x) {
         enum c1 = 1.70158f;
         enum c3 = c1 + 1.0f;
-        return 1.0f + c3 * math.pow(x - 1.0f, 3.0f) + c1 * math.pow(x - 1.0f, 2.0f);
+        return 1.0f + c3 * expo.pow(x - 1.0f, 3.0f) + c1 * expo.pow(x - 1.0f, 2.0f);
     }
 
     float easeInOutBack(float x) {
         enum c1 = 1.70158f;
         enum c2 = c1 * 1.525f;
         if (x < 0.5f) {
-            return (math.pow(2.0f * x, 2.0f) * ((c2 + 1.0f) * 2.0f * x - c2)) / 2.0f;
+            return (expo.pow(2.0f * x, 2.0f) * ((c2 + 1.0f) * 2.0f * x - c2)) / 2.0f;
         } else {
-            return (math.pow(2.0f * x - 2.0f, 2.0f) * ((c2 + 1.0f) * (x * 2.0f - 2.0f) + c2) + 2.0f) / 2.0f;
+            return (expo.pow(2.0f * x - 2.0f, 2.0f) * ((c2 + 1.0f) * (x * 2.0f - 2.0f) + c2) + 2.0f) / 2.0f;
         }
     }
 
     float easeInElastic(float x) {
-        enum c4 = (2.0f * math.PI) / 3.0f;
+        enum c4 = (2.0f * PI) / 3.0f;
         if (x == 0.0f) {
             return 0.0f;
         } else if (x == 1.0f) {
             return 1.0f;
         } else {
-            return -math.pow(2.0f, 10.0f * x - 10.0f) * math.sin((x * 10.0f - 10.75f) * c4);
+            return -expo.pow(2.0f, 10.0f * x - 10.0f) * math.sin((x * 10.0f - 10.75f) * c4);
         }
     }
 
     float easeOutElastic(float x) {
-        enum c4 = (2.0f * math.PI) / 3.0f;
+        enum c4 = (2.0f * PI) / 3.0f;
         if (x == 0.0f) {
             return 0.0f;
         } else if (x == 1.0f) {
             return 1.0f;
         } else {
-            return math.pow(2.0f, -10.0f * x) * math.sin((x * 10.0f - 0.75f) * c4) + 1.0f;
+            return expo.pow(2.0f, -10.0f * x) * math.sin((x * 10.0f - 0.75f) * c4) + 1.0f;
         }
     }
 
     float easeInOutElastic(float x) {
-        enum c5 = (2.0f * math.PI) / 4.5f;
+        enum c5 = (2.0f * PI) / 4.5f;
         if (x == 0.0f) {
             return 0.0f;
         } else if (x == 1.0f) {
             return 1.0f;
         } else if (x < 0.5f) {
-            return -(math.pow(2.0f, 20.0f * x - 10.0f) * math.sin((20.0f * x - 11.125f) * c5)) / 2.0f;
+            return -(expo.pow(2.0f, 20.0f * x - 10.0f) * math.sin((20.0f * x - 11.125f) * c5)) / 2.0f;
         } else {
-            return (math.pow(2.0f, -20.0f * x + 10.0f) * math.sin((20.0f * x - 11.125f) * c5)) / 2.0f + 1.0f;
+            return (expo.pow(2.0f, -20.0f * x + 10.0f) * math.sin((20.0f * x - 11.125f) * c5)) / 2.0f + 1.0f;
         }
     }
 
@@ -674,12 +677,13 @@ pure nothrow @nogc @safe {
 
     float moveTowards(float a, float b, float dt) {
         float c = a + dt;
-        if (c <= 0.0f) {
+        if (c <= a) {
             return a;
         } else if (c >= b) {
             return b;
+        } else {
+            return c;
         }
-        return c;
     }
 }
 
