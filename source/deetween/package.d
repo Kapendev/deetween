@@ -178,6 +178,7 @@ pure nothrow @nogc @safe:
         } else {
             frame = cast(int)(value * (b - a) + a);
         }
+        frameTime = 0.0f;
     }
 
     int now() {
