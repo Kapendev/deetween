@@ -64,7 +64,7 @@ void main() {
 
 ### KeyframeGroup
 
-A simple a-to-b animation lasting 1.0 seconds.
+A simple a-to-b animation that lasts 1.0 seconds.
 
 ```d
 import deetween;

@@ -1,6 +1,8 @@
 // Copyright 2023 Alexandros F. G. Kapretsos
 // SPDX-License-Identifier: Apache-2.0
 
+// TODO: Add helper funcs.
+
 module deetween;
 
 import math = core.math;
@@ -148,8 +150,9 @@ pure nothrow @nogc @safe:
     void duration(float value) {
         if ((b - a) != 0) {
             frameDuration = value / (b - a);
+        } else {
+            frameDuration = 0.0f;
         }
-        frameDuration = 0.0f;
     }
 
     bool hasStarted() {
@@ -684,6 +687,20 @@ pure nothrow @nogc @safe {
             return b;
         } else {
             return c;
+        }
+    }
+
+    // TODO: Check if it works.
+    // NOTE: Thinking of addind some helper func...
+    // NOTE: Think about private clamp too...
+    float weightedAverage(float v, float w, float n, float dt) {
+        float c = v + dt;
+        if (c <= v) {
+            return v;
+        } else if (c >= w) {
+            return w;
+        } else {
+            return ((c * (n - 1)) + w) / n;
         }
     }
 }
