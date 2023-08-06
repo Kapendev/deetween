@@ -463,7 +463,7 @@ pure nothrow @safe:
 }
 
 pure nothrow @nogc @safe {
-    /// Linearly interpolates between a and b by weight.
+    /// Interpolates linearly between a and b by weight.
     /// The weight should be between 0.0 and 1.0, but this is not mandatory.
     float lerp(float a, float b, float weight) {
         return a + (b - a) * weight;
