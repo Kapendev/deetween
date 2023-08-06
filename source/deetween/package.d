@@ -1,8 +1,6 @@
 // Copyright 2023 Alexandros F. G. Kapretsos
 // SPDX-License-Identifier: Apache-2.0
 
-// TODO: Add some extra doc comments.
-// TODO: Check the doc comments.
 // NOTE: Maybe add splines.
 
 module deetween;
@@ -319,7 +317,7 @@ pure nothrow @safe:
     }
 
     /// Returns the current animation value.
-    /// The value is between the first and the last animation value.
+    /// The value is between the current keyframe and the next keyframe.
     @nogc
     float now() {
         if (keys.length == 0) {
@@ -465,42 +463,54 @@ pure nothrow @safe:
 }
 
 pure nothrow @nogc @safe {
+    /// Linearly interpolates between a and b by weight.
+    /// The weight should be between 0.0 and 1.0, but this is not mandatory.
     float lerp(float a, float b, float weight) {
         return a + (b - a) * weight;
     }
 
+    /// Interpolates between a and b by weight by using an easing function.
+    /// The weight should be between 0.0 and 1.0, but this is not mandatory.
     float ease(float a, float b, float weight, EasingFunc f) {
         return a + (b - a) * f(weight);
     }
 
+    /// An easing function.
     float easeNearest(float x) {
         return 0.0f;
     }
 
+    /// An easing function.
     float easeLinear(float x) {
         return x;
     }
 
+    /// An easing function.
     float easeInSine(float x) {
         return 1.0f - math.cos((x * PI) / 2.0f);
     }
 
+    /// An easing function.
     float easeOutSine(float x) {
         return math.sin((x * PI) / 2.0f);
     }
 
+    /// An easing function.
     float easeInOutSine(float x) {
         return -(math.cos(PI * x) - 1.0f) / 2.0f;
     }
 
+    /// An easing function.
     float easeInQuad(float x) {
         return x * x;
     }
 
+    /// An easing function.
     float easeOutQuad(float x) {
         return 1.0f - (1.0f - x) * (1.0f - x);
     }
 
+    /// An easing function.
     float easeInOutQuad(float x) {
         if (x < 0.5f) {
             return 2.0f * x * x;
@@ -509,14 +519,17 @@ pure nothrow @nogc @safe {
         }
     }
 
+    /// An easing function.
     float easeInCubic(float x) {
         return x * x * x;
     }
 
+    /// An easing function.
     float easeOutCubic(float x) {
         return 1.0f - expo.pow(1.0f - x, 3.0f);
     }
 
+    /// An easing function.
     float easeInOutCubic(float x) {
         if (x < 0.5f) {
             return 4.0f * x * x * x;
@@ -525,14 +538,17 @@ pure nothrow @nogc @safe {
         }
     }
 
+    /// An easing function.
     float easeInQuart(float x) {
         return x * x * x * x;
     }
 
+    /// An easing function.
     float easeOutQuart(float x) {
         return 1.0f - expo.pow(1.0f - x, 4.0f);
     }
 
+    /// An easing function.
     float easeInOutQuart(float x) {
         if (x < 0.5f) {
             return 8.0f * x * x * x * x;
@@ -541,14 +557,17 @@ pure nothrow @nogc @safe {
         }
     }
 
+    /// An easing function.
     float easeInQuint(float x) {
         return x * x * x * x * x;
     }
 
+    /// An easing function.
     float easeOutQuint(float x) {
         return 1.0f - expo.pow(1.0f - x, 5.0f);
     }
 
+    /// An easing function.
     float easeInOutQuint(float x) {
         if (x < 0.5f) {
             return 16.0f * x * x * x * x * x;
@@ -557,6 +576,7 @@ pure nothrow @nogc @safe {
         }
     }
 
+    /// An easing function.
     float easeInExpo(float x) {
         if (x == 0.0f) {
             return 0.0f;
@@ -565,6 +585,7 @@ pure nothrow @nogc @safe {
         }
     }
 
+    /// An easing function.
     float easeOutExpo(float x) {
         if (x == 1.0f) {
             return 1.0f;
@@ -573,6 +594,7 @@ pure nothrow @nogc @safe {
         }
     }
 
+    /// An easing function.
     float easeInOutExpo(float x) {
         if (x == 0.0f) {
             return 0.0f;
@@ -585,14 +607,17 @@ pure nothrow @nogc @safe {
         }
     }
 
+    /// An easing function.
     float easeInCirc(float x) {
         return 1.0f - math.sqrt(1.0f - expo.pow(x, 2.0f));
     }
 
+    /// An easing function.
     float easeOutCirc(float x) {
         return math.sqrt(1.0f - expo.pow(x - 1.0f, 2.0f));
     }
 
+    /// An easing function.
     float easeInOutCirc(float x) {
         if (x < 0.5f) {
             return (1.0f - math.sqrt(1.0f - expo.pow(2.0f * x, 2.0f))) / 2.0f;
@@ -601,18 +626,21 @@ pure nothrow @nogc @safe {
         }
     }
 
+    /// An easing function.
     float easeInBack(float x) {
         enum c1 = 1.70158f;
         enum c3 = c1 + 1.0f;
         return c3 * x * x * x - c1 * x * x;
     }
 
+    /// An easing function.
     float easeOutBack(float x) {
         enum c1 = 1.70158f;
         enum c3 = c1 + 1.0f;
         return 1.0f + c3 * expo.pow(x - 1.0f, 3.0f) + c1 * expo.pow(x - 1.0f, 2.0f);
     }
 
+    /// An easing function.
     float easeInOutBack(float x) {
         enum c1 = 1.70158f;
         enum c2 = c1 * 1.525f;
@@ -623,6 +651,7 @@ pure nothrow @nogc @safe {
         }
     }
 
+    /// An easing function.
     float easeInElastic(float x) {
         enum c4 = (2.0f * PI) / 3.0f;
         if (x == 0.0f) {
@@ -634,6 +663,7 @@ pure nothrow @nogc @safe {
         }
     }
 
+    /// An easing function.
     float easeOutElastic(float x) {
         enum c4 = (2.0f * PI) / 3.0f;
         if (x == 0.0f) {
@@ -645,6 +675,7 @@ pure nothrow @nogc @safe {
         }
     }
 
+    /// An easing function.
     float easeInOutElastic(float x) {
         enum c5 = (2.0f * PI) / 4.5f;
         if (x == 0.0f) {
@@ -658,10 +689,12 @@ pure nothrow @nogc @safe {
         }
     }
 
+    /// An easing function.
     float easeInBounce(float x) {
         return 1.0f - easeOutBounce(1.0f - x);
     }
 
+    /// An easing function.
     float easeOutBounce(float x) {
         enum n1 = 7.5625f;
         enum d1 = 2.75f;
@@ -678,6 +711,7 @@ pure nothrow @nogc @safe {
         }
     }
 
+    /// An easing function.
     float easeInOutBounce(float x) {
         if (x < 0.5f) {
             return (1.0f - easeOutBounce(1.0f - 2.0f * x)) / 2.0f;
@@ -686,16 +720,21 @@ pure nothrow @nogc @safe {
         }
     }
 
+    /// Interpolates between a and b with smoothing at the limits.
+    /// The weight should be between 0.0 and 1.0, but this is not mandatory.
     float smoothStep(float a, float b, float weight) {
         float v = weight * weight * (3.0f - 2.0f * weight);
         return (b * v) + (a * (1.0f - v));
     }
 
+    /// Interpolates between a and b with smoothing at the limits.
+    /// The weight should be between 0.0 and 1.0, but this is not mandatory.
     float smootherStep(float a, float b, float weight) {
         float v = weight * weight * weight * (weight * (weight * 6.0f - 15.0f) + 10.0f);
         return (b * v) + (a * (1.0f - v));
     }
 
+    /// Interpolates linearly between a and b by delta.
     float moveTowards(float a, float b, float dt) {
         if (abs(b - a) <= dt) {
             return b;
@@ -703,6 +742,7 @@ pure nothrow @nogc @safe {
         return a + sign(b - a) * dt;
     }
 
+    /// Interpolates smoothly between a and b by delta.
     float smoothDamp(float a, float b, float dt, float slowdown) {
         if (abs(b - a) <= dt) {
             return b;
