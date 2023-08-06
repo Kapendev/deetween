@@ -8,7 +8,7 @@ Deetween is a single-file library designed to be a simple foundation for creatin
 * EasingFunc
 * TweenMode
 * Tween
-* FrameTween
+* ValueSequence
 * Keyframe
 * KeyframeGroup
 
@@ -38,7 +38,7 @@ void main() {
 }
 ```
 
-### FrameTween
+### ValueSequence
 
 A simple a-to-b animation where each value lasts 0.1 seconds.
 
@@ -48,17 +48,17 @@ import deetween;
 void main() {
     enum a = 9;
     enum b = 20;
-    enum frameDuration = 0.1;
+    enum valueDuration = 0.1;
     enum dt = 0.001;
 
-    auto tween = FrameTween(a, b, frameDuration, TweenMode.bomb);
+    auto sequence = ValueSequence(a, b, valueDuration, TweenMode.bomb);
 
-    assert(tween.now == a);
-    while (!tween.hasFinished) {
-        int value = tween.update(dt);
+    assert(sequence.now == a);
+    while (!sequence.hasFinished) {
+        int value = sequence.update(dt);
         assert(value >= a && value <= b);
     }
-    assert(tween.now == b);
+    assert(sequence.now == b);
 }
 ```
 

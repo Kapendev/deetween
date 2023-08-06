@@ -1,7 +1,9 @@
 // Copyright 2023 Alexandros F. G. Kapretsos
 // SPDX-License-Identifier: Apache-2.0
 
-// TODO: Add helper funcs.
+// TODO: Add some extra doc comments.
+// TODO: Check the doc comments.
+// NOTE: Maybe add splines.
 
 module deetween;
 
@@ -24,14 +26,15 @@ enum TweenMode {
 struct Tween {
 pure nothrow @nogc @safe:
 
-    float a = 0.0f; /// The first value.
-    float b = 0.0f; /// The last value.
+    float a = 0.0f; /// The first animation value.
+    float b = 0.0f; /// The last animation value.
     float time = 0.0f; /// The current time of the animation.
     float duration = 0.0f; /// The duration of the animation.
     EasingFunc f = &easeLinear; /// The function used to ease from the first to the last value.
     TweenMode mode; /// The mode of the animation.
     bool isYoyoing; /// Controls if the delta given to the update function is reversed.
 
+    /// Creates a new tween.
     this(float a, float b, float duration, TweenMode mode, EasingFunc f = &easeLinear) {
         this.a = a;
         this.b = b;
@@ -40,14 +43,20 @@ pure nothrow @nogc @safe:
         this.mode = mode;
     }
 
+    /// Returns true if the animation has started.
+    /// This function makes sense when the tween mode is set to bomb.
     bool hasStarted() {
         return time > 0.0f;
     }
 
+    /// Returns true if the animation has finished.
+    /// This function makes sense when the tween mode is set to bomb.
     bool hasFinished() {
         return time >= duration;
     }
 
+    /// Returns the current animation progress.
+    /// The progress is usually between 0.0 and 1.0.
     float progress() {
         if (duration != 0.0f) {
             return time / duration;
@@ -55,16 +64,14 @@ pure nothrow @nogc @safe:
         return 0.0f;
     }
 
+    /// Sets the current animation progress to a specific value.
+    /// The progress should be between 0.0 and 1.0, but this is not mandatory.
     void progress(float value) {
-        if (value <= 0.0f) {
-            time = 0.0f;
-        } else if (value >= 1.0f) {
-            time = duration;
-        } else {
-            time = value * duration;
-        }
+        time = value * duration;
     }
 
+    /// Returns the current animation value.
+    /// The value is between the first and the last animation value.
     float now() {
         if (time <= 0.0f) {
             return a;
@@ -75,6 +82,7 @@ pure nothrow @nogc @safe:
         }
     }
 
+    /// Sets the current animation time to a specific value and returns the current animation value.
     float elapsedTime(float time) {
         final switch (mode) {
         case TweenMode.bomb:
@@ -110,6 +118,7 @@ pure nothrow @nogc @safe:
         }
     }
 
+    /// Updates the current animation time by the given delta and returns the current animation value.
     float update(float dt) {
         if (isYoyoing) {
             return elapsedTime(time - dt);
@@ -118,135 +127,117 @@ pure nothrow @nogc @safe:
         }
     }
 
+    /// Resets the current animation time.
     void reset() {
         time = 0.0f;
     }
 }
 
-/// A frame tween handles the transition from one value to another value based on a value duration.
-struct FrameTween {
+/// A value sequence handles the transition from one value to another value based on a value duration.
+struct ValueSequence {
 pure nothrow @nogc @safe:
 
-    int a; /// The first value.
-    int b; /// The last value.
-    int frame; /// The current value of the animation.
-    float frameTime = 0.0f; /// The current time of the current value.
-    float frameDuration = 0.0f; /// The duration of a value.
+    int a; /// The first animation value.
+    int b; /// The last animation value.
+    int value; /// The current animation value.
+    float valueTime = 0.0f; /// The current time of the current value.
+    float valueDuration = 0.0f; /// The duration of a value.
     TweenMode mode; /// The mode of the animation.
     bool isYoyoing; /// Controls if the delta given to the update function is reversed.
 
-    this(int a, int b, float frameDuration, TweenMode mode) {
+    /// Creates a new value sequence.
+    this(int a, int b, float valueDuration, TweenMode mode) {
         this.a = a;
         this.b = b;
-        this.frame = a;
-        this.frameDuration = frameDuration;
+        this.value = a;
+        this.valueDuration = valueDuration;
         this.mode = mode;
     }
 
-    float duration() {
-        return (b - a) * frameDuration;
-    }
-
-    void duration(float value) {
-        if ((b - a) != 0) {
-            frameDuration = value / (b - a);
-        } else {
-            frameDuration = 0.0f;
-        }
-    }
-
+    /// Returns true if the animation has started.
+    /// This function makes sense when the tween mode is set to bomb.
     bool hasStarted() {
-        return frame > a;
+        return value > a;
     }
 
+    /// Returns true if the animation has finished.
+    /// This function makes sense when the tween mode is set to bomb.
     bool hasFinished() {
-        return frame >= b;
+        return value >= b;
     }
 
-    float progress() {
-        if (frame == a) {
-            return 0.0f;
-        } else if (frame == b) {
-            return 1.0f;
-        } else {
-            return cast(float)((frame - a)) / (b - a);
-        }
-    }
-
-    void progress(float value) {
-        if (value <= 0.0f) {
-            frame = a;
-        } else if (value >= 1.0f) {
-            frame = b;
-        } else {
-            frame = cast(int)(value * (b - a) + a);
-        }
-        frameTime = 0.0f;
-    }
-
+    /// Returns the current animation value.
+    /// The value is between the first and the last animation value.
     int now() {
-        return frame;
+        if (value < a) {
+            return a;
+        } else if (value > b) {
+            return b;
+        } else {
+            return value;
+        }
     }
 
+    /// Updates the current time of the current value by the given delta and returns the current animation value.
     int update(float dt) {
         if (isYoyoing) {
-            frameTime -= dt;
+            valueTime -= dt;
         } else {
-            frameTime += dt;
+            valueTime += dt;
         }
         final switch (mode) {
         case TweenMode.bomb:
-            while (frameTime < 0.0f) {
-                if (frame > a) {
-                    frame -= 1;
-                    frameTime += frameDuration;
+            while (valueTime < 0.0f) {
+                if (value > a) {
+                    value -= 1;
+                    valueTime += valueDuration;
                 } else {
-                    frameTime = 0.0f;
+                    valueTime = 0.0f;
                 }
             }
-            while (frameTime > frameDuration) {
-                if (frame < b) {
-                    frame += 1;
-                    frameTime -= frameDuration;
+            while (valueTime > valueDuration) {
+                if (value < b) {
+                    value += 1;
+                    valueTime -= valueDuration;
                 } else {
-                    frameTime = frameDuration;
+                    valueTime = valueDuration;
                 }
             }
             return now;
         case TweenMode.loop:
-            while (frameTime < 0.0f) {
-                if (frame > a) {
-                    frame -= 1;
+            while (valueTime < 0.0f) {
+                if (value > a) {
+                    value -= 1;
                 } else {
-                    frame = b;
+                    value = b;
                 }
-                frameTime += frameDuration;
+                valueTime += valueDuration;
             }
-            while (frameTime > frameDuration) {
-                if (frame < b) {
-                    frame += 1;
+            while (valueTime > valueDuration) {
+                if (value < b) {
+                    value += 1;
                 } else {
-                    frame = a;
+                    value = a;
                 }
-                frameTime -= frameDuration;
+                valueTime -= valueDuration;
             }
             return now;
         case TweenMode.yoyo:
-            while (frameTime < 0.0f) {
-                if (frame > a) {
-                    frame -= 1;
-                    frameTime += frameDuration;
+            while (valueTime < 0.0f) {
+                if (value > a) {
+                    value -= 1;
+                    valueTime += valueDuration;
                 } else {
-                    frameTime = 0.0f;
+                    valueTime = 0.0f;
                     isYoyoing = false;
                 }
             }
-            while (frameTime > frameDuration) {
-                if (frame < b) {
-                    frame += 1;
-                    frameTime -= frameDuration;
+            while (valueTime > valueDuration) {
+                if (value < b) {
+                    value += 1;
+                    valueTime -= valueDuration;
                 } else {
-                    frameTime = frameDuration;
+                    valueTime = valueDuration;
                     isYoyoing = true;
                 }
             }
@@ -254,9 +245,10 @@ pure nothrow @nogc @safe:
         }
     }
 
+    /// Resets the current animation value.
     void reset() {
-        frame = a;
-        frameTime = 0.0f;
+        value = a;
+        valueTime = 0.0f;
     }
 }
 
@@ -267,6 +259,7 @@ pure nothrow @nogc @safe:
     float value = 0.0f; /// The current value.
     float time = 0.0f; /// The current time.
 
+    /// Creates a new keyframe.
     this(float value, float time) {
         this.value = value;
         this.time = time;
@@ -286,6 +279,7 @@ pure nothrow @safe:
     TweenMode mode; /// The mode of the animation.
     bool isYoyoing; /// Controls if the delta given to the update function is reversed.
 
+    /// Creates a new keyframe group.
     this(float duration, TweenMode mode, EasingFunc f = &easeLinear) {
         reserve(keys, defaultCapacity);
         this.duration = duration;
@@ -293,16 +287,22 @@ pure nothrow @safe:
         this.mode = mode;
     }
 
+    /// Returns true if the animation has started.
+    /// This function makes sense when the tween mode is set to bomb.
     @nogc
     bool hasStarted() {
         return time > 0.0f;
     }
 
+    /// Returns true if the animation has finished.
+    /// This function makes sense when the tween mode is set to bomb.
     @nogc
     bool hasFinished() {
         return time >= duration;
     }
 
+    /// Returns the current animation progress.
+    /// The progress is usually between 0.0 and 1.0.
     @nogc
     float progress() {
         if (duration != 0.0f) {
@@ -311,17 +311,15 @@ pure nothrow @safe:
         return 0.0f;
     }
 
+    /// Sets the current animation progress to a specific value.
+    /// The progress should be between 0.0 and 1.0, but this is not mandatory.
     @nogc
     void progress(float value) {
-        if (value <= 0.0f) {
-            time = 0.0f;
-        } else if (value >= 1.0f) {
-            time = duration;
-        } else {
-            time = value * duration;
-        }
+        time = value * duration;
     }
 
+    /// Returns the current animation value.
+    /// The value is between the first and the last animation value.
     @nogc
     float now() {
         if (keys.length == 0) {
@@ -343,6 +341,7 @@ pure nothrow @safe:
         }
     }
 
+    /// Sets the current animation time to a specific value and returns the current animation value.
     @nogc
     float elapsedTime(float time) {
         final switch (mode) {
@@ -379,6 +378,7 @@ pure nothrow @safe:
         }
     }
 
+    /// Updates the current animation time by the given delta and returns the current animation value.
     @nogc
     float update(float dt) {
         if (isYoyoing) {
@@ -388,16 +388,19 @@ pure nothrow @safe:
         }
     }
 
+    /// Resets the current animation time.
     @nogc
     void reset() {
         time = 0.0f;
     }
 
+    /// Returns the keyframe count of the animation.
     @nogc
     size_t length() {
         return keys.length;
     }
 
+    /// Appends the keyframe to the animation.
     void append(Keyframe key) {
         if (keys.length == 0 || keys[$ - 1].time <= key.time) {
             keys ~= key;
@@ -416,6 +419,7 @@ pure nothrow @safe:
         }
     }
 
+    /// A helper function for appending many keyframes evenly to the animation.
     void appendEvenly(float[] values...) {
         foreach (i; 0 .. values.length) {
             float t;
@@ -430,6 +434,7 @@ pure nothrow @safe:
         }
     }
 
+    /// Removes a keyframe from the animation.
     @nogc
     void remove(size_t idx) {
         int i = 0;
@@ -440,6 +445,7 @@ pure nothrow @safe:
         keys = keys[0 .. $ - 1];
     }
 
+    /// Pops a keyframe from the animation.
     @nogc
     Keyframe pop() {
         if (keys.length != 0) {
@@ -451,6 +457,7 @@ pure nothrow @safe:
         }
     }
 
+    /// Removes all keyframes from the animation.
     @nogc
     void clear() {
         keys.length = 0;
@@ -679,28 +686,43 @@ pure nothrow @nogc @safe {
         }
     }
 
+    float smoothStep(float a, float b, float weight) {
+        float v = weight * weight * (3.0f - 2.0f * weight);
+        return (b * v) + (a * (1.0f - v));
+    }
+
+    float smootherStep(float a, float b, float weight) {
+        float v = weight * weight * weight * (weight * (weight * 6.0f - 15.0f) + 10.0f);
+        return (b * v) + (a * (1.0f - v));
+    }
+
     float moveTowards(float a, float b, float dt) {
-        float c = a + dt;
-        if (c <= a) {
-            return a;
-        } else if (c >= b) {
+        if (abs(b - a) <= dt) {
             return b;
+        }
+        return a + sign(b - a) * dt;
+    }
+
+    float smoothDamp(float a, float b, float dt, float slowdown) {
+        if (abs(b - a) <= dt) {
+            return b;
+        }
+        return (((a + sign(b - a) * dt) * (slowdown - 1.0f)) + b) / slowdown;
+    }
+
+    private float abs(float x) {
+        if (x < 0.0f) {
+            return -x;
         } else {
-            return c;
+            return x;
         }
     }
 
-    // TODO: Check if it works.
-    // NOTE: Thinking of addind some helper func...
-    // NOTE: Think about private clamp too...
-    float weightedAverage(float v, float w, float n, float dt) {
-        float c = v + dt;
-        if (c <= v) {
-            return v;
-        } else if (c >= w) {
-            return w;
+    private float sign(float x) {
+        if (x < 0.0f) {
+            return -1.0f;
         } else {
-            return ((c * (n - 1)) + w) / n;
+            return 1.0f;
         }
     }
 }
@@ -724,17 +746,17 @@ unittest {
 unittest {
     enum a = 9;
     enum b = 20;
-    enum frameDuration = 0.1;
+    enum valueDuration = 0.1;
     enum dt = 0.001;
 
-    auto tween = FrameTween(a, b, frameDuration, TweenMode.bomb);
+    auto sequence = ValueSequence(a, b, valueDuration, TweenMode.bomb);
 
-    assert(tween.now == a);
-    while (!tween.hasFinished) {
-        int value = tween.update(dt);
+    assert(sequence.now == a);
+    while (!sequence.hasFinished) {
+        int value = sequence.update(dt);
         assert(value >= a && value <= b);
     }
-    assert(tween.now == b);
+    assert(sequence.now == b);
 }
 
 unittest {
@@ -759,12 +781,22 @@ unittest {
 }
 
 unittest {
+    enum totalDuration = 32.321;
+
+    auto anim = Tween(69, 420, totalDuration, TweenMode.bomb);
+
+    assert(anim.progress == 0.0f);
+    anim.time = totalDuration;
+    assert(anim.progress == 1.0f);
+}
+
+unittest {
     enum a = 69;
     enum b = 420;
     enum totalDuration = 1.0;
 
     auto anim1 = Tween(a, b, totalDuration, TweenMode.loop);
-    auto anim2 = FrameTween(a, b, totalDuration / (b - a), TweenMode.loop);
+    auto anim2 = ValueSequence(a, b, totalDuration / (b - a), TweenMode.loop);
     auto anim3 = KeyframeGroup(totalDuration, TweenMode.loop);
     anim3.appendEvenly(a, b);
 
