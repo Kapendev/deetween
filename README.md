@@ -8,9 +8,9 @@ Deetween is a single-file library designed to be a simple foundation for creatin
 * EasingFunc
 * TweenMode
 * Tween
-* ValueSequence
 * Keyframe
 * KeyframeGroup
+* ValueSequence
 
 ## Examples
 
@@ -35,30 +35,6 @@ void main() {
         assert(value >= a && value <= b);
     }
     assert(tween.now == b);
-}
-```
-
-### ValueSequence
-
-A simple a-to-b animation where each value lasts 0.1 seconds.
-
-```d
-import deetween;
-
-void main() {
-    enum a = 9;
-    enum b = 20;
-    enum valueDuration = 0.1;
-    enum dt = 0.001;
-
-    auto sequence = ValueSequence(a, b, valueDuration, TweenMode.bomb);
-
-    assert(sequence.now == a);
-    while (!sequence.hasFinished) {
-        int value = sequence.update(dt);
-        assert(value >= a && value <= b);
-    }
-    assert(sequence.now == b);
 }
 ```
 
@@ -88,6 +64,30 @@ void main() {
     assert(group.now == b);
     group.clear();
     assert(group.length == 0);
+}
+```
+
+### ValueSequence
+
+A simple a-to-b animation where each value lasts 0.1 seconds.
+
+```d
+import deetween;
+
+void main() {
+    enum a = 9;
+    enum b = 20;
+    enum valueDuration = 0.1;
+    enum dt = 0.001;
+
+    auto sequence = ValueSequence(a, b, valueDuration, TweenMode.bomb);
+
+    assert(sequence.now == a);
+    while (!sequence.hasFinished) {
+        int value = sequence.update(dt);
+        assert(value >= a && value <= b);
+    }
+    assert(sequence.now == b);
 }
 ```
 

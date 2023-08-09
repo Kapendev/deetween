@@ -54,18 +54,18 @@ pure nothrow @nogc @safe:
     }
 
     /// Returns the current animation progress.
-    /// The progress is usually between 0.0 and 1.0.
+    /// The progress is between 0.0 and 1.0.
     float progress() {
         if (duration != 0.0f) {
-            return time / duration;
+            return clamp(time / duration, 0.0f, 1.0f);
         }
         return 0.0f;
     }
 
     /// Sets the current animation progress to a specific value.
-    /// The progress should be between 0.0 and 1.0, but this is not mandatory.
+    /// The progress is between 0.0 and 1.0.
     void progress(float value) {
-        time = value * duration;
+        time = clamp(value * duration, 0.0f, 1.0f);
     }
 
     /// Returns the current animation value.
@@ -84,34 +84,18 @@ pure nothrow @nogc @safe:
     float elapsedTime(float time) {
         final switch (mode) {
         case TweenMode.bomb:
-            float clampedTime = time;
-            if (clampedTime < 0.0f) {
-                clampedTime = 0.0f;
-            } else if (clampedTime > duration) {
-                clampedTime = duration;
-            }
-            this.time = clampedTime;
+            this.time = clamp(time, 0.0f, duration);
             return now;
         case TweenMode.loop:
-            float loopedTime = time;
-            while (loopedTime < 0.0f) {
-                loopedTime += duration;
-            }
-            while (loopedTime > duration) {
-                loopedTime -= duration;
-            }
-            this.time = loopedTime;
+            this.time = clampLooped(time, 0.0f, duration);
             return now;
         case TweenMode.yoyo:
-            float yoyoedTime = time;
-            if (yoyoedTime < 0.0f) {
-                yoyoedTime = 0.0f;
+            if (time < 0.0f) {
                 isYoyoing = false;
-            } else if (yoyoedTime > duration) {
-                yoyoedTime = duration;
+            } else if (time > duration) {
                 isYoyoing = true;
             }
-            this.time = yoyoedTime;
+            this.time = clamp(time, 0.0f, duration);
             return now;
         }
     }
@@ -128,6 +112,202 @@ pure nothrow @nogc @safe:
     /// Resets the current animation time.
     void reset() {
         time = 0.0f;
+    }
+}
+
+/// A keyframe is a data type that has a value and a time.
+struct Keyframe {
+pure nothrow @nogc @safe:
+
+    float value = 0.0f; /// The current value.
+    float time = 0.0f; /// The current time.
+
+    /// Creates a new keyframe.
+    this(float value, float time) {
+        this.value = value;
+        this.time = time;
+    }
+}
+
+/// A keyframe group handles the transition from one keyframe to another keyframe.
+struct KeyframeGroup {
+pure nothrow @safe:
+
+    enum defaultCapacity = 16;
+
+    Keyframe[] keys; /// The keyframes of the animation.
+    float time = 0.0f; /// The current time of the animation.
+    float duration = 0.0f; /// The duration of the animation
+    EasingFunc f = &easeLinear; /// The function used to ease from one keyframe to another keyframe.
+    TweenMode mode; /// The mode of the animation.
+    bool isYoyoing; /// Controls if the delta given to the update function is reversed.
+
+    /// Creates a new keyframe group.
+    this(float duration, TweenMode mode, EasingFunc f = &easeLinear) {
+        reserve(keys, defaultCapacity);
+        this.duration = duration;
+        this.f = f;
+        this.mode = mode;
+    }
+
+    /// Returns true if the animation has started.
+    /// This function makes sense when the tween mode is set to bomb.
+    @nogc
+    bool hasStarted() {
+        return time > 0.0f;
+    }
+
+    /// Returns true if the animation has finished.
+    /// This function makes sense when the tween mode is set to bomb.
+    @nogc
+    bool hasFinished() {
+        return time >= duration;
+    }
+
+    /// Returns the current animation progress.
+    /// The progress is between 0.0 and 1.0.
+    @nogc
+    float progress() {
+        if (duration != 0.0f) {
+            return clamp(time / duration, 0.0f, 1.0f);
+        }
+        return 0.0f;
+    }
+
+    /// Sets the current animation progress to a specific value.
+    /// The progress is between 0.0 and 1.0.
+    @nogc
+    void progress(float value) {
+        time = clamp(value * duration, 0.0f, 1.0f);
+    }
+
+    /// Returns the current animation value.
+    /// The value is between the current keyframe and the next keyframe.
+    @nogc
+    float now() {
+        if (keys.length == 0) {
+            return 0.0f;
+        } else if (time <= 0.0f) {
+            return keys[0].value;
+        } else if (time >= duration) {
+            return keys[$ - 1].value;
+        } else {
+            foreach (i; 0 .. keys.length) {
+                if (time <= keys[i].time) {
+                    Keyframe a = keys[i - 1];
+                    Keyframe b = keys[i];
+                    float weight = (time - a.time) / (b.time - a.time);
+                    return ease(a.value, b.value, weight, f);
+                }
+            }
+            return 0.0f;
+        }
+    }
+
+    /// Sets the current animation time to a specific value and returns the current animation value.
+    @nogc
+    float elapsedTime(float time) {
+        final switch (mode) {
+        case TweenMode.bomb:
+            this.time = clamp(time, 0.0f, duration);
+            return now;
+        case TweenMode.loop:
+            this.time = clampLooped(time, 0.0f, duration);
+            return now;
+        case TweenMode.yoyo:
+            if (time < 0.0f) {
+                isYoyoing = false;
+            } else if (time > duration) {
+                isYoyoing = true;
+            }
+            this.time = clamp(time, 0.0f, duration);
+            return now;
+        }
+    }
+
+    /// Updates the current animation time by the given delta and returns the current animation value.
+    @nogc
+    float update(float dt) {
+        if (isYoyoing) {
+            return elapsedTime(time - dt);
+        } else {
+            return elapsedTime(time + dt);
+        }
+    }
+
+    /// Resets the current animation time.
+    @nogc
+    void reset() {
+        time = 0.0f;
+    }
+
+    /// Returns the keyframe count of the animation.
+    @nogc
+    size_t length() {
+        return keys.length;
+    }
+
+    /// Appends the keyframe to the animation.
+    void append(Keyframe key) {
+        if (keys.length == 0 || keys[$ - 1].time <= key.time) {
+            keys ~= key;
+        } else {
+            keys ~= key;
+            // Hehehe!
+            foreach (i; 1 .. keys.length) {
+                foreach_reverse (j; i .. keys.length) {
+                    if (keys[j - 1].time > keys[j].time) {
+                        Keyframe temp = keys[j - 1];
+                        keys[j - 1] = keys[j];
+                        keys[j] = temp;
+                    }
+                }
+            }
+        }
+    }
+
+    /// A helper function for appending many keyframes evenly to the animation.
+    void appendEvenly(float[] values...) {
+        foreach (i; 0 .. values.length) {
+            float t;
+            if (i == 0) {
+                t = 0.0f;
+            } else if (i == values.length - 1) {
+                t = duration;
+            } else {
+                t = duration * (cast(float)(i) / (values.length - 1));
+            }
+            append(Keyframe(values[i], t));
+        }
+    }
+
+    /// Removes a keyframe from the animation.
+    @nogc
+    void remove(size_t idx) {
+        int i = 0;
+        while (i + 1 < keys.length) {
+            keys[i] = keys[i + 1];
+            i += 1;
+        }
+        keys = keys[0 .. $ - 1];
+    }
+
+    /// Pops a keyframe from the animation.
+    @nogc
+    Keyframe pop() {
+        if (keys.length != 0) {
+            Keyframe temp = keys[$ - 1];
+            keys = keys[0 .. $ - 1];
+            return temp;
+        } else {
+            return Keyframe();
+        }
+    }
+
+    /// Removes all keyframes from the animation.
+    @nogc
+    void clear() {
+        keys.length = 0;
     }
 }
 
@@ -250,231 +430,7 @@ pure nothrow @nogc @safe:
     }
 }
 
-/// A keyframe is a data type that has a value and a time.
-struct Keyframe {
-pure nothrow @nogc @safe:
-
-    float value = 0.0f; /// The current value.
-    float time = 0.0f; /// The current time.
-
-    /// Creates a new keyframe.
-    this(float value, float time) {
-        this.value = value;
-        this.time = time;
-    }
-}
-
-/// A keyframe group handles the transition from one keyframe to another keyframe.
-struct KeyframeGroup {
-pure nothrow @safe:
-
-    enum defaultCapacity = 16;
-
-    Keyframe[] keys; /// The keyframes of the animation.
-    float time = 0.0f; /// The current time of the animation.
-    float duration = 0.0f; /// The duration of the animation
-    EasingFunc f = &easeLinear; /// The function used to ease from one keyframe to another keyframe.
-    TweenMode mode; /// The mode of the animation.
-    bool isYoyoing; /// Controls if the delta given to the update function is reversed.
-
-    /// Creates a new keyframe group.
-    this(float duration, TweenMode mode, EasingFunc f = &easeLinear) {
-        reserve(keys, defaultCapacity);
-        this.duration = duration;
-        this.f = f;
-        this.mode = mode;
-    }
-
-    /// Returns true if the animation has started.
-    /// This function makes sense when the tween mode is set to bomb.
-    @nogc
-    bool hasStarted() {
-        return time > 0.0f;
-    }
-
-    /// Returns true if the animation has finished.
-    /// This function makes sense when the tween mode is set to bomb.
-    @nogc
-    bool hasFinished() {
-        return time >= duration;
-    }
-
-    /// Returns the current animation progress.
-    /// The progress is usually between 0.0 and 1.0.
-    @nogc
-    float progress() {
-        if (duration != 0.0f) {
-            return time / duration;
-        }
-        return 0.0f;
-    }
-
-    /// Sets the current animation progress to a specific value.
-    /// The progress should be between 0.0 and 1.0, but this is not mandatory.
-    @nogc
-    void progress(float value) {
-        time = value * duration;
-    }
-
-    /// Returns the current animation value.
-    /// The value is between the current keyframe and the next keyframe.
-    @nogc
-    float now() {
-        if (keys.length == 0) {
-            return 0.0f;
-        } else if (time <= 0.0f) {
-            return keys[0].value;
-        } else if (time >= duration) {
-            return keys[$ - 1].value;
-        } else {
-            foreach (i; 0 .. keys.length) {
-                if (time <= keys[i].time) {
-                    Keyframe a = keys[i - 1];
-                    Keyframe b = keys[i];
-                    float weight = (time - a.time) / (b.time - a.time);
-                    return ease(a.value, b.value, weight, f);
-                }
-            }
-            return 0.0f;
-        }
-    }
-
-    /// Sets the current animation time to a specific value and returns the current animation value.
-    @nogc
-    float elapsedTime(float time) {
-        final switch (mode) {
-        case TweenMode.bomb:
-            float clampedTime = time;
-            if (clampedTime < 0.0f) {
-                clampedTime = 0.0f;
-            } else if (clampedTime > duration) {
-                clampedTime = duration;
-            }
-            this.time = clampedTime;
-            return now;
-        case TweenMode.loop:
-            float loopedTime = time;
-            while (loopedTime < 0.0f) {
-                loopedTime += duration;
-            }
-            while (loopedTime > duration) {
-                loopedTime -= duration;
-            }
-            this.time = loopedTime;
-            return now;
-        case TweenMode.yoyo:
-            float yoyoedTime = time;
-            if (yoyoedTime < 0.0f) {
-                yoyoedTime = 0.0f;
-                isYoyoing = false;
-            } else if (yoyoedTime > duration) {
-                yoyoedTime = duration;
-                isYoyoing = true;
-            }
-            this.time = yoyoedTime;
-            return now;
-        }
-    }
-
-    /// Updates the current animation time by the given delta and returns the current animation value.
-    @nogc
-    float update(float dt) {
-        if (isYoyoing) {
-            return elapsedTime(time - dt);
-        } else {
-            return elapsedTime(time + dt);
-        }
-    }
-
-    /// Resets the current animation time.
-    @nogc
-    void reset() {
-        time = 0.0f;
-    }
-
-    /// Returns the keyframe count of the animation.
-    @nogc
-    size_t length() {
-        return keys.length;
-    }
-
-    /// Appends the keyframe to the animation.
-    void append(Keyframe key) {
-        if (keys.length == 0 || keys[$ - 1].time <= key.time) {
-            keys ~= key;
-        } else {
-            keys ~= key;
-            // Hehehe!
-            foreach (i; 1 .. keys.length) {
-                foreach_reverse (j; i .. keys.length) {
-                    if (keys[j - 1].time > keys[j].time) {
-                        Keyframe temp = keys[j - 1];
-                        keys[j - 1] = keys[j];
-                        keys[j] = temp;
-                    }
-                }
-            }
-        }
-    }
-
-    /// A helper function for appending many keyframes evenly to the animation.
-    void appendEvenly(float[] values...) {
-        foreach (i; 0 .. values.length) {
-            float t;
-            if (i == 0) {
-                t = 0.0f;
-            } else if (i == values.length - 1) {
-                t = duration;
-            } else {
-                t = duration * (cast(float)(i) / (values.length - 1));
-            }
-            append(Keyframe(values[i], t));
-        }
-    }
-
-    /// Removes a keyframe from the animation.
-    @nogc
-    void remove(size_t idx) {
-        int i = 0;
-        while (i + 1 < keys.length) {
-            keys[i] = keys[i + 1];
-            i += 1;
-        }
-        keys = keys[0 .. $ - 1];
-    }
-
-    /// Pops a keyframe from the animation.
-    @nogc
-    Keyframe pop() {
-        if (keys.length != 0) {
-            Keyframe temp = keys[$ - 1];
-            keys = keys[0 .. $ - 1];
-            return temp;
-        } else {
-            return Keyframe();
-        }
-    }
-
-    /// Removes all keyframes from the animation.
-    @nogc
-    void clear() {
-        keys.length = 0;
-    }
-}
-
 pure nothrow @nogc @safe {
-    /// Interpolates linearly between a and b by weight.
-    /// The weight should be between 0.0 and 1.0, but this is not mandatory.
-    float lerp(float a, float b, float weight) {
-        return a + (b - a) * weight;
-    }
-
-    /// Interpolates between a and b by weight by using an easing function.
-    /// The weight should be between 0.0 and 1.0, but this is not mandatory.
-    float ease(float a, float b, float weight, EasingFunc f) {
-        return a + (b - a) * f(weight);
-    }
-
     /// An easing function.
     float easeNearest(float x) {
         return 0.0f;
@@ -720,14 +676,26 @@ pure nothrow @nogc @safe {
         }
     }
 
-    /// Interpolates between a and b with smoothing at the limits.
+    /// Interpolates linearly between a and b by weight.
+    /// The weight should be between 0.0 and 1.0, but this is not mandatory.
+    float lerp(float a, float b, float weight) {
+        return a + (b - a) * weight;
+    }
+
+    /// Interpolates between a and b by weight by using an easing function.
+    /// The weight should be between 0.0 and 1.0, but this is not mandatory.
+    float ease(float a, float b, float weight, EasingFunc f) {
+        return a + (b - a) * f(weight);
+    }
+
+    /// Interpolates between a and b with smoothing at the limits by weight.
     /// The weight should be between 0.0 and 1.0, but this is not mandatory.
     float smoothStep(float a, float b, float weight) {
         float v = weight * weight * (3.0f - 2.0f * weight);
         return (b * v) + (a * (1.0f - v));
     }
 
-    /// Interpolates between a and b with smoothing at the limits.
+    /// Interpolates between a and b with smoothing at the limits by weight.
     /// The weight should be between 0.0 and 1.0, but this is not mandatory.
     float smootherStep(float a, float b, float weight) {
         float v = weight * weight * weight * (weight * (weight * 6.0f - 15.0f) + 10.0f);
@@ -742,7 +710,7 @@ pure nothrow @nogc @safe {
         return a + sign(b - a) * dt;
     }
 
-    /// Interpolates smoothly between a and b by delta.
+    /// Interpolates smoothly between a and b by delta by using a slowdown factor.
     float smoothDamp(float a, float b, float dt, float slowdown) {
         if (abs(b - a) <= dt) {
             return b;
@@ -765,6 +733,27 @@ pure nothrow @nogc @safe {
             return 1.0f;
         }
     }
+
+    private float clamp(float x, float min, float max) {
+        if (x < min) {
+            return min;
+        } else if (x > max) {
+            return max;
+        } else {
+            return x;
+        }
+    }
+
+    private float clampLooped(float x, float min, float max) {
+        float result = x;
+        while (result < min) {
+            result += max;
+        }
+        while (result > max) {
+            result -= max;
+        }
+        return result;
+    }
 }
 
 unittest {
@@ -781,22 +770,6 @@ unittest {
         assert(value >= a && value <= b);
     }
     assert(tween.now == b);
-}
-
-unittest {
-    enum a = 9;
-    enum b = 20;
-    enum valueDuration = 0.1;
-    enum dt = 0.001;
-
-    auto sequence = ValueSequence(a, b, valueDuration, TweenMode.bomb);
-
-    assert(sequence.now == a);
-    while (!sequence.hasFinished) {
-        int value = sequence.update(dt);
-        assert(value >= a && value <= b);
-    }
-    assert(sequence.now == b);
 }
 
 unittest {
@@ -818,6 +791,22 @@ unittest {
     assert(group.now == b);
     group.clear();
     assert(group.length == 0);
+}
+
+unittest {
+    enum a = 9;
+    enum b = 20;
+    enum valueDuration = 0.1;
+    enum dt = 0.001;
+
+    auto sequence = ValueSequence(a, b, valueDuration, TweenMode.bomb);
+
+    assert(sequence.now == a);
+    while (!sequence.hasFinished) {
+        int value = sequence.update(dt);
+        assert(value >= a && value <= b);
+    }
+    assert(sequence.now == b);
 }
 
 unittest {
