@@ -52,8 +52,10 @@ void main() {
     enum dt = 0.001;
 
     auto group = KeyframeGroup(totalDuration, TweenMode.bomb);
-    group.append(Keyframe(a, 0.0));
-    group.append(Keyframe(b, totalDuration));
+    group.append(
+        Keyframe(a, 0.0),
+        Keyframe(b, totalDuration),
+    );
 
     assert(group.length == 2);
     assert(group.now == a);

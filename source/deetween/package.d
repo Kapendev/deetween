@@ -87,7 +87,7 @@ pure nothrow @nogc @safe:
             this.time = clamp(time, 0.0f, duration);
             return now;
         case TweenMode.loop:
-            this.time = clampLooped(time, 0.0f, duration);
+            this.time = loopClamp(time, 0.0f, duration);
             return now;
         case TweenMode.yoyo:
             if (time < 0.0f) {
@@ -212,7 +212,7 @@ pure nothrow @safe:
             this.time = clamp(time, 0.0f, duration);
             return now;
         case TweenMode.loop:
-            this.time = clampLooped(time, 0.0f, duration);
+            this.time = loopClamp(time, 0.0f, duration);
             return now;
         case TweenMode.yoyo:
             if (time < 0.0f) {
@@ -248,18 +248,20 @@ pure nothrow @safe:
     }
 
     /// Appends the keyframe to the animation.
-    void append(Keyframe key) {
-        if (keys.length == 0 || keys[$ - 1].time <= key.time) {
-            keys ~= key;
-        } else {
-            keys ~= key;
-            // Hehehe!
-            foreach (i; 1 .. keys.length) {
-                foreach_reverse (j; i .. keys.length) {
-                    if (keys[j - 1].time > keys[j].time) {
-                        Keyframe temp = keys[j - 1];
-                        keys[j - 1] = keys[j];
-                        keys[j] = temp;
+    void append(Keyframe[] items...) {
+        foreach (item; items) {
+            if (keys.length == 0 || keys[$ - 1].time <= item.time) {
+                keys ~= item;
+            } else {
+                keys ~= item;
+                // Hehehe!
+                foreach (i; 1 .. keys.length) {
+                    foreach_reverse (j; i .. keys.length) {
+                        if (keys[j - 1].time > keys[j].time) {
+                            Keyframe temp = keys[j - 1];
+                            keys[j - 1] = keys[j];
+                            keys[j] = temp;
+                        }
                     }
                 }
             }
@@ -284,10 +286,8 @@ pure nothrow @safe:
     /// Removes a keyframe from the animation.
     @nogc
     void remove(size_t idx) {
-        int i = 0;
-        while (i + 1 < keys.length) {
+        foreach (i; 0 .. keys.length - 1) {
             keys[i] = keys[i + 1];
-            i += 1;
         }
         keys = keys[0 .. $ - 1];
     }
@@ -295,13 +295,12 @@ pure nothrow @safe:
     /// Pops a keyframe from the animation.
     @nogc
     Keyframe pop() {
-        if (keys.length != 0) {
-            Keyframe temp = keys[$ - 1];
-            keys = keys[0 .. $ - 1];
-            return temp;
-        } else {
+        if (keys.length == 0) {
             return Keyframe();
         }
+        Keyframe temp = keys[$ - 1];
+        keys = keys[0 .. $ - 1];
+        return temp;
     }
 
     /// Removes all keyframes from the animation.
@@ -744,7 +743,7 @@ pure nothrow @nogc @safe {
         }
     }
 
-    private float clampLooped(float x, float min, float max) {
+    private float loopClamp(float x, float min, float max) {
         float result = x;
         while (result < min) {
             result += max;
@@ -779,8 +778,10 @@ unittest {
     enum dt = 0.001;
 
     auto group = KeyframeGroup(totalDuration, TweenMode.bomb);
-    group.append(Keyframe(a, 0.0));
-    group.append(Keyframe(b, totalDuration));
+    group.append(
+        Keyframe(a, 0.0),
+        Keyframe(b, totalDuration),
+    );
 
     assert(group.length == 2);
     assert(group.now == a);
