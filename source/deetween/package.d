@@ -768,7 +768,7 @@ unittest {
 
     auto group = KeyframeGroup(totalDuration, TweenMode.bomb);
     group.append(
-        Keyframe(a, 0.0),
+        Keyframe(a, 0.0f),
         Keyframe(b, totalDuration),
     );
 
