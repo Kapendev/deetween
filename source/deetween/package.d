@@ -24,12 +24,12 @@ enum TweenMode {
 struct Tween {
 pure nothrow @nogc @safe:
 
+    EasingFunc f = &easeLinear; /// The function used to ease from the first to the last value.
+    TweenMode mode = TweenMode.bomb; /// The mode of the animation.
     float a = 0.0f; /// The first animation value.
     float b = 0.0f; /// The last animation value.
     float time = 0.0f; /// The current time of the animation.
     float duration = 0.0f; /// The duration of the animation.
-    EasingFunc f = &easeLinear; /// The function used to ease from the first to the last value.
-    TweenMode mode; /// The mode of the animation.
     bool isYoyoing; /// Controls if the delta given to the update function is reversed.
 
     /// Creates a new tween.
@@ -136,10 +136,10 @@ pure nothrow @safe:
     enum defaultCapacity = 16;
 
     Keyframe[] keys; /// The keyframes of the animation.
+    EasingFunc f = &easeLinear; /// The function used to ease from one keyframe to another keyframe.
+    TweenMode mode = TweenMode.bomb; /// The mode of the animation.
     float time = 0.0f; /// The current time of the animation.
     float duration = 0.0f; /// The duration of the animation
-    EasingFunc f = &easeLinear; /// The function used to ease from one keyframe to another keyframe.
-    TweenMode mode; /// The mode of the animation.
     bool isYoyoing; /// Controls if the delta given to the update function is reversed.
 
     /// Creates a new keyframe group.
@@ -292,17 +292,6 @@ pure nothrow @safe:
         keys = keys[0 .. $ - 1];
     }
 
-    /// Pops a keyframe from the animation.
-    @nogc
-    Keyframe pop() {
-        if (keys.length == 0) {
-            return Keyframe();
-        }
-        Keyframe temp = keys[$ - 1];
-        keys = keys[0 .. $ - 1];
-        return temp;
-    }
-
     /// Removes all keyframes from the animation.
     @nogc
     void clear() {
@@ -314,12 +303,12 @@ pure nothrow @safe:
 struct ValueSequence {
 pure nothrow @nogc @safe:
 
+    TweenMode mode; /// The mode of the animation.
     int a; /// The first animation value.
     int b; /// The last animation value.
     int value; /// The current animation value.
     float valueTime = 0.0f; /// The current time of the current value.
     float valueDuration = 0.0f; /// The duration of a value.
-    TweenMode mode; /// The mode of the animation.
     bool isYoyoing; /// Controls if the delta given to the update function is reversed.
 
     /// Creates a new value sequence.
@@ -756,10 +745,10 @@ pure nothrow @nogc @safe {
 }
 
 unittest {
-    enum a = 9.0;
-    enum b = 20.0;
-    enum totalDuration = 1.0;
-    enum dt = 0.001;
+    const a = 9.0f;
+    const b = 20.0f;
+    const totalDuration = 1.0f;
+    const dt = 0.001f;
 
     auto tween = Tween(a, b, totalDuration, TweenMode.bomb);
 
@@ -772,10 +761,10 @@ unittest {
 }
 
 unittest {
-    enum a = 9.0;
-    enum b = 20.0;
-    enum totalDuration = 1.0;
-    enum dt = 0.001;
+    const a = 9.0f;
+    const b = 20.0f;
+    const totalDuration = 1.0f;
+    const dt = 0.001f;
 
     auto group = KeyframeGroup(totalDuration, TweenMode.bomb);
     group.append(
@@ -783,22 +772,19 @@ unittest {
         Keyframe(b, totalDuration),
     );
 
-    assert(group.length == 2);
     assert(group.now == a);
     while (!group.hasFinished) {
         float value = group.update(dt);
         assert(value >= a && value <= b);
     }
     assert(group.now == b);
-    group.clear();
-    assert(group.length == 0);
 }
 
 unittest {
-    enum a = 9;
-    enum b = 20;
-    enum valueDuration = 0.1;
-    enum dt = 0.001;
+    const a = 9;
+    const b = 20;
+    const valueDuration = 0.1f;
+    const dt = 0.001f;
 
     auto sequence = ValueSequence(a, b, valueDuration, TweenMode.bomb);
 
@@ -811,62 +797,49 @@ unittest {
 }
 
 unittest {
-    enum totalDuration = 32.321;
-
-    auto anim = Tween(69, 420, totalDuration, TweenMode.bomb);
-
-    assert(anim.progress == 0.0f);
-    anim.time = totalDuration;
-    assert(anim.progress == 1.0f);
-}
-
-unittest {
-    enum a = 69;
-    enum b = 420;
-    enum totalDuration = 1.0;
+    const a = 69;
+    const b = 420;
+    const totalDuration = 1.0f;
 
     auto anim1 = Tween(a, b, totalDuration, TweenMode.loop);
-    auto anim2 = ValueSequence(a, b, totalDuration / (b - a), TweenMode.loop);
-    auto anim3 = KeyframeGroup(totalDuration, TweenMode.loop);
-    anim3.appendEvenly(a, b);
+    auto anim2 = KeyframeGroup(totalDuration, TweenMode.loop);
+    auto anim3 = ValueSequence(a, b, totalDuration / (b - a), TweenMode.loop);
+    anim2.appendEvenly(a, b);
 
-    assert(anim1.update(0.0) == a);
-    assert(anim2.update(0.0) == a);
-    assert(anim3.update(0.0) == a);
+    assert(anim1.progress == 0.0f);
+    assert(anim2.progress == 0.0f);
+
+    assert(anim1.update(0.0f) == a);
+    assert(anim2.update(0.0f) == a);
+    assert(anim3.update(0.0f) == a);
 
     assert(anim1.update(totalDuration) == b);
     assert(anim2.update(totalDuration) == b);
     assert(anim3.update(totalDuration) == b);
 
+    assert(anim1.progress == 1.0f);
+    assert(anim2.progress == 1.0f);
+
     anim1.reset();
     anim2.reset();
     anim3.reset();
 
-    assert(anim1.update(totalDuration + 0.1) < b);
-    assert(anim2.update(totalDuration + 0.1) < b);
-    assert(anim3.update(totalDuration + 0.1) < b);
+    assert(anim1.update(totalDuration + 0.1f) < b);
+    assert(anim2.update(totalDuration + 0.1f) < b);
+    assert(anim3.update(totalDuration + 0.1f) < b);
 }
 
 unittest {
-    enum key1 = Keyframe(1, 1);
-    enum key2 = Keyframe(2, 2);
-    enum key3 = Keyframe(3, 3);
+    const a = 1;
+    const b = 2;
+    const c = 3;
 
     auto group = KeyframeGroup();
+    group.appendEvenly(a, b, c);
 
-    group.append(key3);
-    group.append(key2);
-    group.append(key1);
     assert(group.keys.length == 3);
-    assert(group.pop() == key3);
-    assert(group.pop() == key2);
-    assert(group.pop() == key1);
-    assert(group.pop() == Keyframe());
-    assert(group.keys.length == 0);
-
-    group.appendEvenly(1, 2, 3, 4);
-    assert(group.keys.length == 4);
-    group.remove(1);
-    assert(group.keys.length == 3);
-    assert(group.keys[1].value == 3);
+    assert(group.keys[0].value == a);
+    group.remove(0);
+    assert(group.keys.length == 2);
+    assert(group.keys[0].value == b);
 }

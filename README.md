@@ -22,10 +22,10 @@ A simple a-to-b animation that lasts 1.0 seconds.
 import deetween;
 
 void main() {
-    enum a = 9.0;
-    enum b = 20.0;
-    enum totalDuration = 1.0;
-    enum dt = 0.001;
+    const a = 9.0f;
+    const b = 20.0f;
+    const totalDuration = 1.0f;
+    const dt = 0.001f;
 
     auto tween = Tween(a, b, totalDuration, TweenMode.bomb);
 
@@ -46,10 +46,10 @@ A simple a-to-b animation that lasts 1.0 seconds.
 import deetween;
 
 void main() {
-    enum a = 9.0;
-    enum b = 20.0;
-    enum totalDuration = 1.0;
-    enum dt = 0.001;
+    const a = 9.0f;
+    const b = 20.0f;
+    const totalDuration = 1.0f;
+    const dt = 0.001f;
 
     auto group = KeyframeGroup(totalDuration, TweenMode.bomb);
     group.append(
@@ -57,15 +57,12 @@ void main() {
         Keyframe(b, totalDuration),
     );
 
-    assert(group.length == 2);
     assert(group.now == a);
     while (!group.hasFinished) {
         float value = group.update(dt);
         assert(value >= a && value <= b);
     }
     assert(group.now == b);
-    group.clear();
-    assert(group.length == 0);
 }
 ```
 
@@ -77,10 +74,10 @@ A simple a-to-b animation where each value lasts 0.1 seconds.
 import deetween;
 
 void main() {
-    enum a = 9;
-    enum b = 20;
-    enum valueDuration = 0.1;
-    enum dt = 0.001;
+    const a = 9;
+    const b = 20;
+    const valueDuration = 0.1f;
+    const dt = 0.001f;
 
     auto sequence = ValueSequence(a, b, valueDuration, TweenMode.bomb);
 
@@ -101,7 +98,8 @@ void main() {
 
 ## Credits
 
-The easing functions were ported from JavaScript to D from [this](https://easings.net/) site.
+* The easing functions were ported from JavaScript to D from [this](https://easings.net/) site.
+* Some functions were written using [this](https://solhsa.com/interpolation/index.html) site as a reference.
 
 ## License
 
