@@ -9,6 +9,7 @@ import math = core.math;
 import expo = std.math.exponential;
 
 private enum PI = 3.141592f;
+private enum smallestDt = 0.000001f;
 
 /// A representation of an easing function.
 alias EasingFunc = float function(float x) pure nothrow @nogc @safe;
@@ -22,8 +23,6 @@ enum TweenMode {
 
 /// A tween handles the transition from one value to another value based on a transition duration.
 struct Tween {
-pure nothrow @nogc @safe:
-
     EasingFunc f = &easeLinear; /// The function used to ease from the first to the last value.
     TweenMode mode = TweenMode.bomb; /// The mode of the animation.
     float a = 0.0f; /// The first animation value.
@@ -32,8 +31,10 @@ pure nothrow @nogc @safe:
     float duration = 0.0f; /// The duration of the animation.
     bool isYoyoing; /// Controls if the delta given to the update function is reversed.
 
+pure nothrow @nogc @safe:
+
     /// Creates a new tween.
-    this(float a, float b, float duration, TweenMode mode, EasingFunc f = &easeLinear) {
+    this(float a, float b, float duration, TweenMode mode = TweenMode.bomb, EasingFunc f = &easeLinear) {
         this.a = a;
         this.b = b;
         this.duration = duration;
@@ -117,10 +118,10 @@ pure nothrow @nogc @safe:
 
 /// A keyframe is a data type that has a value and a time.
 struct Keyframe {
-pure nothrow @nogc @safe:
-
     float value = 0.0f; /// The current value.
     float time = 0.0f; /// The current time.
+
+pure nothrow @nogc @safe:
 
     /// Creates a new keyframe.
     this(float value, float time) {
@@ -131,10 +132,6 @@ pure nothrow @nogc @safe:
 
 /// A keyframe group handles the transition from one keyframe to another keyframe.
 struct KeyframeGroup {
-pure nothrow @safe:
-
-    enum defaultCapacity = 16;
-
     Keyframe[] keys; /// The keyframes of the animation.
     EasingFunc f = &easeLinear; /// The function used to ease from one keyframe to another keyframe.
     TweenMode mode = TweenMode.bomb; /// The mode of the animation.
@@ -142,9 +139,10 @@ pure nothrow @safe:
     float duration = 0.0f; /// The duration of the animation
     bool isYoyoing; /// Controls if the delta given to the update function is reversed.
 
+pure nothrow @safe:
+
     /// Creates a new keyframe group.
-    this(float duration, TweenMode mode, EasingFunc f = &easeLinear) {
-        reserve(keys, defaultCapacity);
+    this(float duration, TweenMode mode = TweenMode.bomb, EasingFunc f = &easeLinear) {
         this.duration = duration;
         this.f = f;
         this.mode = mode;
@@ -247,6 +245,21 @@ pure nothrow @safe:
         return keys.length;
     }
 
+    @nogc
+    size_t opDollar() {
+        return length;
+    }
+
+    @nogc
+    Keyframe opIndex(size_t idx) {
+        return keys[idx];
+    }
+
+    @nogc
+    void opIndexAssign(Keyframe value, size_t idx) {
+        keys[idx] = value;
+    }
+
     /// Appends the keyframe to the animation.
     void append(Keyframe[] items...) {
         foreach (item; items) {
@@ -301,8 +314,6 @@ pure nothrow @safe:
 
 /// A value sequence handles the transition from one value to another value based on a value duration.
 struct ValueSequence {
-pure nothrow @nogc @safe:
-
     TweenMode mode; /// The mode of the animation.
     int a; /// The first animation value.
     int b; /// The last animation value.
@@ -311,8 +322,10 @@ pure nothrow @nogc @safe:
     float valueDuration = 0.0f; /// The duration of a value.
     bool isYoyoing; /// Controls if the delta given to the update function is reversed.
 
+pure nothrow @nogc @safe:
+
     /// Creates a new value sequence.
-    this(int a, int b, float valueDuration, TweenMode mode) {
+    this(int a, int b, float valueDuration, TweenMode mode = TweenMode.bomb) {
         this.a = a;
         this.b = b;
         this.value = a;
@@ -699,11 +712,16 @@ pure nothrow @nogc @safe {
     }
 
     /// Interpolates smoothly between a and b by delta by using a slowdown factor.
-    float smoothDamp(float a, float b, float dt, float slowdown) {
+    float smoothMoveTowards(float a, float b, float dt, float slowdown) {
         if (abs(b - a) <= dt) {
             return b;
         }
         return (((a + sign(b - a) * dt) * (slowdown - 1.0f)) + b) / slowdown;
+    }
+
+    /// Returns true if a is moving towards b by using the smallest possible delta.
+    bool isMovingTowards(float a, float b) {
+        return !(abs(b - a) <= smallestDt);
     }
 
     private float abs(float x) {
@@ -837,9 +855,9 @@ unittest {
     auto group = KeyframeGroup();
     group.appendEvenly(a, b, c);
 
-    assert(group.keys.length == 3);
-    assert(group.keys[0].value == a);
+    assert(group.length == 3);
+    assert(group[0].value == a);
     group.remove(0);
-    assert(group.keys.length == 2);
-    assert(group.keys[0].value == b);
+    assert(group.length == 2);
+    assert(group[0].value == b);
 }
