@@ -9,7 +9,6 @@ import math = core.math;
 import expo = std.math.exponential;
 
 private enum PI = 3.141592f;
-private enum smallestDt = 0.008f;
 
 /// A representation of an easing function.
 alias EasingFunc = float function(float x) pure nothrow @nogc @safe;
@@ -720,8 +719,7 @@ pure nothrow @nogc @safe {
     }
 
     /// Returns true if a is moving towards b by delta.
-    /// The smallest possible delta is used if no delta is given.
-    bool isMovingTowards(float a, float b, float dt = smallestDt) {
+    bool isMovingTowards(float a, float b, float dt) {
         return !(abs(b - a) <= dt);
     }
 
