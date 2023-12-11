@@ -725,18 +725,17 @@ pure nothrow @nogc @safe {
 
     /// Interpolates linearly between a and b by delta time.
     float moveTowards(float a, float b, float dt) {
-        if (abs(b - a) <= dt) {
-            return b;
-        }
-        return a + sign(b - a) * dt;
+	    if (abs(b - a) > abs(dt)) {
+	        return a + sign(b - a) * dt;
+	    } else {
+	        return b;
+	    }
     }
 
     /// Interpolates smoothly between a and b by delta time by using a slowdown factor.
     float smoothMoveTowards(float a, float b, float dt, float slowdown) {
-        if (abs(b - a) <= dt) {
-            return b;
-        }
-        return (((a + sign(b - a) * dt) * (slowdown - 1.0f)) + b) / slowdown;
+	    float target = ((a * (slowdown - 1.0f)) + b) / slowdown;
+	    return a + (target - a) * dt;
     }
 
     /// Returns true if a is moving towards b by delta time.
